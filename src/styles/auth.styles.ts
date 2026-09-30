@@ -1,0 +1,306 @@
+// src/styles/auth.styles.ts
+// Estilos desacoplados para Welcome, Login y Registro (Módulo 05)
+
+import { StyleSheet } from 'react-native';
+
+export const authStyles = StyleSheet.create({
+  // ==========================================
+  // PANTALLA WELCOME / ONBOARDING
+  // ==========================================
+  welcomeContainer: {
+    flex: 1,
+    backgroundColor: '#070D18',
+  },
+  welcomeContent: {
+    padding: 24,
+    paddingTop: 40,
+    paddingBottom: 40,
+    justifyContent: 'space-between',
+    minHeight: '100%',
+  },
+  welcomeHero: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  welcomeLogoBadge: {
+    width: 80,
+    height: 80,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 180, 216, 0.12)',
+    borderWidth: 1.5,
+    borderColor: '#00B4D8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  tagPill: {
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    borderWidth: 1,
+    borderColor: '#38BDF8',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginBottom: 12,
+  },
+  tagPillText: {
+    color: '#38BDF8',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  welcomeTitle: {
+    fontSize: 30,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    lineHeight: 38,
+  },
+  welcomeHighlight: {
+    color: '#00B4D8',
+  },
+  welcomeDesc: {
+    fontSize: 14,
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginTop: 10,
+    lineHeight: 22,
+    maxWidth: 340,
+  },
+  featureBox: {
+    marginTop: 26,
+    width: '100%',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    padding: 16,
+    gap: 12,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  featureIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(2, 132, 199, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  featureTextTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  featureTextSub: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  welcomeActions: {
+    width: '100%',
+    gap: 12,
+    marginTop: 30,
+  },
+  btnPrimary: {
+    backgroundColor: '#0284C7',
+    paddingVertical: 15,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  btnPrimaryText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  btnSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: '#38BDF8',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnSecondaryText: {
+    color: '#38BDF8',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  btnGuest: {
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  btnGuestText: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  // ==========================================
+  // PANTALLAS DE LOGIN & REGISTRO
+  // ==========================================
+  authContainer: {
+    flex: 1,
+    backgroundColor: '#070D18',
+  },
+  authContent: {
+    padding: 24,
+    paddingTop: 16,
+    paddingBottom: 40,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 20,
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 2,
+  },
+  backBtnText: {
+    color: '#38BDF8',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  authHeader: {
+    marginBottom: 24,
+  },
+  authTitle: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  authSubtitle: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginTop: 6,
+    lineHeight: 20,
+  },
+  errorCard: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  errorText: {
+    color: '#FCA5A5',
+    fontSize: 13,
+    flex: 1,
+  },
+  formCard: {
+    backgroundColor: '#0E1726',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.15)',
+    padding: 20,
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    elevation: 4,
+  },
+  inputGroup: {
+    gap: 6,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#CBD5E1',
+    letterSpacing: 0.3,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#070D18',
+    borderWidth: 1,
+    borderColor: '#1E293B',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 50,
+  },
+  inputWrapperFocused: {
+    borderColor: '#0284C7',
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  textInput: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 14,
+  },
+  demoCard: {
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  demoCardText: {
+    fontSize: 12,
+    color: '#38BDF8',
+    fontWeight: '600',
+  },
+  demoFillBtn: {
+    backgroundColor: '#0284C7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  demoFillBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  submitBtn: {
+    backgroundColor: '#0284C7',
+    height: 52,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  submitBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  switchAuthRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 24,
+    gap: 6,
+  },
+  switchAuthText: {
+    color: '#94A3B8',
+    fontSize: 13,
+  },
+  switchAuthLink: {
+    color: '#38BDF8',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+});
