@@ -38,7 +38,7 @@ Asegúrate de tener instalados los siguientes programas:
 Abre tu terminal (o Git Bash) y ejecuta:
 
 ```bash
-git clone https://github.com/TU_USUARIO/andesmobile-app-avance.git
+git clone https://github.com/Williams-102/andesmobile-app-avance.git
 ```
 *(Reemplaza la URL por la que te comparta tu docente).*
 
