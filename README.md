@@ -34,46 +34,46 @@ Asegúrate de tener instalados los siguientes programas:
 
 ---
 
-### 2️⃣ Clonar el Repositorio
+### 2️⃣ Clonar el Repositorio (Si eres nuevo o empiezas de cero)
 Abre tu terminal (o Git Bash) y ejecuta:
 
 ```bash
 git clone https://github.com/Williams-102/andesmobile-app-avance.git
-```
-*(Reemplaza la URL por la que te comparta tu docente).*
-
----
-
-### 3️⃣ Entrar a la Carpeta del Proyecto
-```bash
 cd andesmobile-app-avance
-```
-
----
-
-### 4️⃣ Instalar las Dependencias
-Ejecuta el comando para descargar todas las librerías necesarias:
-
-```bash
 npm install
-```
-*(Espera un par de minutos a que termine de descargar los paquetes).*
-
----
-
-### 5️⃣ Iniciar el Servidor de Desarrollo
-```bash
 npx expo start
 ```
 
 ---
 
-### 6️⃣ Abrir la App en tu Celular
-En tu terminal aparecerá un **Código QR grande**:
+### 🔄 ¿Ya tenías el proyecto clonado antes y solo quieres descargar los nuevos cambios del profesor?
+Si ya tenías la carpeta del proyecto en tu computadora de clases anteriores y solo quieres **llamar / descargar la última versión del Módulo 05**, sigue estos pasos dentro de tu carpeta `andesmobile-app-avance`:
 
-* **En Android:** Abre la app **Expo Go**, toca en *"Scan QR code"* y apunta la cámara a tu pantalla.
-* **En iPhone:** Abre la app normal de la **Cámara**, apunta al código QR y toca la notificación que te abrirá Expo Go.
-* **En la Web (Navegador):** Puedes presionar la tecla `w` en la terminal para probarlo directamente en tu navegador web.
+#### Paso 1: Guardar o apartar cambios locales (para no perder nada)
+Si estuviste escribiendo código y te sale error de conflicto, ejecuta:
+```bash
+git stash
+```
+*(Esto guarda temporalmente tus cambios locales para que Git te permita descargar lo nuevo sin errores).*
+
+#### Paso 2: Descargar y fusionar los cambios del repositorio oficial
+```bash
+git pull origin main
+```
+> **Nota:** Si tu repositorio estaba apuntando a una URL antigua, puedes actualizarla con:
+> `git remote set-url origin https://github.com/Williams-102/andesmobile-app-avance.git`
+
+#### Paso 3: Reinstalar dependencias (¡Muy importante!)
+Siempre que el docente agregue nuevas librerías o controladores:
+```bash
+npm install
+```
+
+#### Paso 4: Iniciar con caché limpia
+```bash
+npx expo start -c
+```
+*(El parámetro `-c` limpia la caché de Metro Bundler para evitar pantallas en blanco).*
 
 ---
 
