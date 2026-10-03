@@ -1,4 +1,4 @@
-# 📱 Andes Mobile App — Avance Módulo 05 (Code Andes Academy)
+# 📱 Andes Mobile App — Avance Módulo 06 (Code Andes Academy)
 
 > **Programa de Especialización Profesional:** Desarrollo de Aplicaciones Móviles Android e iOS con React Native & Expo  
 > **Docente:** Exar Williams Atao Paucar  
@@ -8,16 +8,24 @@
 ---
 
 ## 🎯 ¿Qué incluye este repositorio?
-Este repositorio contiene el código fuente completo y optimizado hasta el **Módulo 05: Gestión de Estado Global Reactivo con React Hooks y Context API**, estructurado bajo **Clean Architecture**:
+Este repositorio contiene el código fuente completo, probado y optimizado hasta el **Módulo 06: Arquitectura Offline First y Persistencia con AsyncStorage**, estructurado bajo **Clean Architecture**:
 
-* 🌟 **Splash Screen & Onboarding:** Pantalla de carga con verificación de sesión y bienvenida institucional.
-* 🔐 **Flujo de Autenticación:** Pantalla de Login con atajo demo (`⚡ Rellenar Demo`) y pantalla de Registro de nuevo alumno.
-* 🌐 **Estado Global (Context API):**
-  * `AuthContext`: Sesión activa del usuario, nombre, rol y número de colegiatura CIP.
-  * `CartContext`: Carrito de compras reactivo, agregación sin duplicados, cálculos automáticos de subtotal, IGV (18%) y total.
-* 🔴 **Badge Dinámico en Tabs:** El contador de la pestaña Carrito se actualiza en vivo al agregar o quitar cursos.
-* 🏛️ **Clean Architecture:** Desacoplamiento estricto entre Vistas (`app/`), Controladores (`controllers/`) y Estilos (`styles/`).
-* 📘 **TypeScript Estricto:** 100% libre de errores de compilación (`tsc --noEmit` exit code 0).
+* 💾 **Persistencia en Disco Local (AsyncStorage):**
+  * `AuthContext`: Sesión de usuario persistente que sobrevive a reinicios forzados de la app.
+  * `CartContext`: Carrito de compras permanente con escudo de seguridad (`useRef`) contra borrado accidental.
+* 📡 **Monitoreo de Red en Tiempo Real (NetInfo):**
+  * Hook reactivo `useNetworkStatus` con detección instantánea de conectividad.
+  * `OfflineBanner`: Notificación flotante ámbar adaptada con Safe Area Insets para no chocar con el reloj ni los iconos de batería de tu teléfono.
+* ⚡ **Cola de Transacciones Offline FIFO (SyncEngine):**
+  * Si el alumno realiza una matrícula en **Modo Avión**, la compra se asegura en una cola persistente con ticket UUID (`tx_...`).
+  * `SyncSentinel`: Centinela en segundo plano que detecta el regreso de la red y procesa la cola FIFO automáticamente sin requerir clics del usuario.
+* 🧾 **Historial de Boletas y Facturación Local:**
+  * Almacenamiento local de comprobantes de pago digitales en `BoletasService`.
+  * Visualización en la pestaña **Mi Perfil > Historial de Boletas**, identificando pagos online y compras sincronizadas desde offline.
+* 🏛️ **Clean Architecture & TypeScript Estricto:**
+  * Desacoplamiento de Servicios (`services/`), Hooks (`hooks/`), Componentes (`components/`), Controladores (`controllers/`) y Vistas (`app/`).
+  * 100% libre de errores de compilación (`npx tsc --noEmit` exit code 0).
+
 
 ---
 
@@ -116,10 +124,12 @@ Para ingresar sin tener que registrarte manualmente:
 ├── 📁 app/             ← Rutas de la app (Splash, Auth, Tabs y Detalle)
 ├── 📁 controllers/     ← Lógica de negocio, estados y validaciones
 ├── 📁 styles/          ← Estilos visuales desacoplados (StyleSheet)
-├── 📁 components/      ← Componentes reutilizables (Tarjetas, Modales)
-├── 📁 context/         ← AuthContext & CartContext (Estado Global)
-├── 📁 constants/       ← Paleta de colores y datos de cursos
-└── 📁 types/           ← Interfaces TypeScript de Curso, Usuario y Carrito
+├── 📁 components/      ← Componentes reutilizables (Banner, Tarjetas, Modales)
+├── 📁 context/         ← AuthContext & CartContext (Estado Global Persistente)
+├── 📁 services/        ← StorageService, BoletasService y SyncEngine (Offline First)
+├── 📁 hooks/           ← useNetworkStatus (Monitoreo NetInfo con cleanup)
+├── 📁 constants/       ← StorageKeys, Paleta de colores y datos de cursos
+└── 📁 types/           ← Interfaces TypeScript de Boletas, Offline, Curso y Usuario
 ```
 
 ---

@@ -1,8 +1,10 @@
 // src/context/CartContext.tsx
-// Gestión de Estado Global del Carrito de Compras (Módulo 05 - Láminas 19 a 23)
+// Gestión de Estado Global del Carrito de Compras con Persistencia Offline en AsyncStorage (Módulo 06)
 
-import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { ItemCarrito, CartContextType } from '../types/carrito';
+import { StorageService } from '../services/StorageService';
+import { STORAGE_KEYS } from '../constants/StorageKeys';
 
 // 1. Creación del Canal de Contexto tipado
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -11,21 +13,55 @@ interface CartProviderProps {
   children: React.ReactNode;
 }
 
-// 2. Proveedor Global del Carrito
+// 2. Proveedor Global del Carrito con Persistencia
 export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
-  // Estado reactivo: lista de cursos en el carrito
-  const [items, setItems] = useState<ItemCarrito[]>([
-    {
-      id: '1',
-      titulo: 'Desarrollo de Apps Móviles con React Native & Expo',
-      precio: 149.90,
-      instructor: 'Exar Williams Atao',
-      categoria: 'Móvil',
-      duracion: '120 hrs',
-      imagenUrl: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800',
-      fechaAgregado: new Date().toISOString(),
-    },
-  ]);
+  const [items, setItems] = useState<ItemCarrito[]>([]);
+  const estaInicializado = useRef(false);
+
+  // Carga inicial desde AsyncStorage al arrancar la app
+  useEffect(() => {
+    let isMounted = true;
+    const cargarCarrito = async () => {
+      try {
+        const guardados = await StorageService.get<ItemCarrito[]>(STORAGE_KEYS.CART_ITEMS, []);
+        if (isMounted) {
+          if (guardados && guardados.length > 0) {
+            setItems(guardados);
+          } else {
+            // Producto demo inicial para que el alumno explore de inmediato
+            const demoItem: ItemCarrito = {
+              id: '1',
+              titulo: 'Desarrollo de Apps Móviles con React Native & Expo',
+              precio: 149.90,
+              instructor: 'Exar Williams Atao',
+              categoria: 'Móvil',
+              duracion: '120 hrs',
+              imagenUrl: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800',
+              fechaAgregado: new Date().toISOString(),
+            };
+            setItems([demoItem]);
+            await StorageService.set(STORAGE_KEYS.CART_ITEMS, [demoItem]);
+          }
+          estaInicializado.current = true;
+        }
+      } catch (error) {
+        console.error('[CartContext] Error cargando items de AsyncStorage:', error);
+        if (isMounted) estaInicializado.current = true;
+      }
+    };
+
+    cargarCarrito();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Persistir en AsyncStorage en cada cambio reactivo (después de inicializar)
+  useEffect(() => {
+    if (estaInicializado.current) {
+      StorageService.set(STORAGE_KEYS.CART_ITEMS, items);
+    }
+  }, [items]);
 
   // Verificar si un curso ya está en el carrito
   const estaEnCarrito = useCallback(
@@ -35,7 +71,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     [items]
   );
 
-  // Agregar curso al carrito (evita duplicados de un mismo curso académico)
+  // Agregar curso al carrito
   const agregarProducto = useCallback(
     (nuevoItem: ItemCarrito): boolean => {
       if (items.some((item) => item.id === nuevoItem.id)) {
@@ -63,7 +99,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     setItems([]);
   }, []);
 
-  // Cálculos reactivos y memorizados con useMemo (Lámina 21)
+  // Cálculos reactivos y memorizados con useMemo
   const cantidadTotal = useMemo(() => items.length, [items]);
 
   const total = useMemo(() => {

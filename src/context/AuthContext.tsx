@@ -1,8 +1,10 @@
 // src/context/AuthContext.tsx
-// Gestión de Estado Global de Sesión de Usuario (Módulo 05 - Láminas 14 a 18)
+// Gestión de Estado Global de Sesión de Usuario (Módulos 05 y 06 - Persistencia Offline con AsyncStorage)
 
-import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
 import { Usuario, AuthContextType } from '../types/usuario';
+import { StorageService } from '../services/StorageService';
+import { STORAGE_KEYS } from '../constants/StorageKeys';
 
 // 1. Creación del Canal de Contexto tipado
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -11,18 +13,39 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-// 2. Componente Proveedor (La Antena)
+// 2. Componente Proveedor (La Antena) con persistencia en disco
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // Estado inicial: null para permitir el flujo completo de Splash -> Welcome -> Login
   const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [cargando, setCargando] = useState<boolean>(false);
+  const [cargando, setCargando] = useState<boolean>(true); // Inicia en true mientras restaura sesión
 
-  // Iniciar Sesión simulado con latencia de red
+  // Restauración de sesión persistente en AsyncStorage al arrancar la app
+  useEffect(() => {
+    let isMounted = true;
+    const restaurarSesion = async () => {
+      try {
+        const usuarioGuardado = await StorageService.get<Usuario | null>(STORAGE_KEYS.AUTH_USER, null);
+        if (isMounted && usuarioGuardado) {
+          setUsuario(usuarioGuardado);
+        }
+      } catch (error) {
+        console.error('[AuthContext] Error restaurando sesión persistente:', error);
+      } finally {
+        if (isMounted) setCargando(false);
+      }
+    };
+
+    restaurarSesion();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Iniciar Sesión con persistencia física en AsyncStorage
   const login = useCallback(async (email: string, nombre?: string) => {
     setCargando(true);
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    setUsuario({
+    const nuevoUsuario: Usuario = {
       id: `usr-${Date.now()}`,
       nombre: nombre || 'Estudiante Code Andes',
       email: email.trim().toLowerCase(),
@@ -34,12 +57,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       pais: 'Perú',
       activo: true,
       creadoEn: new Date().toISOString(),
-    });
+    };
 
+    setUsuario(nuevoUsuario);
+    await StorageService.set(STORAGE_KEYS.AUTH_USER, nuevoUsuario);
     setCargando(false);
   }, []);
 
-  // Registrar nueva cuenta de alumno
+  // Registrar nueva cuenta de alumno con persistencia física en AsyncStorage
   const registro = useCallback(
     async (datos: {
       nombre: string;
@@ -50,7 +75,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setCargando(true);
       await new Promise((resolve) => setTimeout(resolve, 900));
 
-      setUsuario({
+      const nuevoUsuario: Usuario = {
         id: `usr-reg-${Date.now()}`,
         nombre: datos.nombre.trim(),
         email: datos.email.trim().toLowerCase(),
@@ -62,21 +87,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         pais: 'Perú',
         activo: true,
         creadoEn: new Date().toISOString(),
-      });
+      };
 
+      setUsuario(nuevoUsuario);
+      await StorageService.set(STORAGE_KEYS.AUTH_USER, nuevoUsuario);
       setCargando(false);
     },
     []
   );
 
-  // Cerrar Sesión
-  const logout = useCallback(() => {
+  // Cerrar Sesión y purgar de AsyncStorage
+  const logout = useCallback(async () => {
     setUsuario(null);
+    await StorageService.remove(STORAGE_KEYS.AUTH_USER);
   }, []);
 
-  // Actualizar datos del perfil
+  // Actualizar datos del perfil y sincronizar con AsyncStorage
   const actualizarPerfil = useCallback((datos: Partial<Usuario>) => {
-    setUsuario((prev) => (prev ? { ...prev, ...datos, actualizadoEn: new Date().toISOString() } : null));
+    setUsuario((prev) => {
+      if (!prev) return null;
+      const actualizado: Usuario = {
+        ...prev,
+        ...datos,
+        actualizadoEn: new Date().toISOString(),
+      };
+      StorageService.set(STORAGE_KEYS.AUTH_USER, actualizado);
+      return actualizado;
+    });
   }, []);
 
   // Memorización del valor de contexto para evitar re-renderizados innecesarios
