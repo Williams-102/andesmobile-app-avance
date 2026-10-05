@@ -90,42 +90,37 @@ export default function PerfilScreen() {
 
       {/* Opciones disponibles */}
       <View style={perfilStyles.opcionesCard}>
-        {/* Acceso exclusivo a Gestión para Admin o Docente */}
-        {estaAutenticado && (usuario?.rol === 'admin' || usuario?.rol === 'docente') && (
+        {/* Acceso al Portal Administrativo de Cursos (Solo Admin) */}
+        {estaAutenticado && usuario?.rol === 'admin' && (
           <TouchableOpacity
             style={[
               perfilStyles.opcionFila,
               {
-                backgroundColor: usuario?.rol === 'admin' ? 'rgba(245, 158, 11, 0.12)' : 'rgba(56, 189, 248, 0.12)',
+                backgroundColor: 'rgba(245, 158, 11, 0.12)',
                 borderWidth: 1,
-                borderColor: usuario?.rol === 'admin' ? '#F59E0B' : '#38BDF8',
+                borderColor: '#F59E0B',
                 borderRadius: 10,
                 marginBottom: 6,
               },
             ]}
             onPress={() => setModalAdminVisible(true)}
           >
-            <Ionicons
-              name={usuario?.rol === 'admin' ? 'shield-checkmark' : 'create-outline'}
-              size={22}
-              color={usuario?.rol === 'admin' ? '#F59E0B' : '#38BDF8'}
-            />
+            <Ionicons name="shield-checkmark" size={22} color="#F59E0B" />
             <Text
               style={[
                 perfilStyles.opcionTexto,
                 {
-                  color: usuario?.rol === 'admin' ? '#F59E0B' : '#38BDF8',
+                  color: '#F59E0B',
                   fontWeight: '800',
                 },
               ]}
             >
-              {usuario?.rol === 'admin'
-                ? '👑 Panel de Administración (CRUD Supabase)'
-                : '👨‍🏫 Gestión de Cursos (Docente CIP)'}
+              👑 Portal Admin (Subir & Gestionar Cursos)
             </Text>
-            <Ionicons name="chevron-forward" size={18} color={usuario?.rol === 'admin' ? '#F59E0B' : '#38BDF8'} />
+            <Ionicons name="chevron-forward" size={18} color="#F59E0B" />
           </TouchableOpacity>
         )}
+
 
         <TouchableOpacity
           style={perfilStyles.opcionFila}

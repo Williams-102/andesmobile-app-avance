@@ -30,10 +30,9 @@ export default function RegistroScreen() {
     setRegPassword,
     regCip,
     setRegCip,
-    regRol,
-    setRegRol,
     handleRegistroSubmit,
     handleIrALogin,
+
     handleVolver,
   } = useAuthController();
 
@@ -103,46 +102,7 @@ export default function RegistroScreen() {
             </View>
 
             <View style={authStyles.inputGroup}>
-              <Text style={authStyles.inputLabel}>TIPO DE USUARIO / ROL</Text>
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    borderRadius: 8,
-                    alignItems: 'center',
-                    borderWidth: 1,
-                    borderColor: regRol === 'alumno' ? '#38BDF8' : '#334155',
-                    backgroundColor: regRol === 'alumno' ? 'rgba(56, 189, 248, 0.15)' : '#0F172A',
-                  }}
-                  onPress={() => setRegRol('alumno')}
-                >
-                  <Text style={{ color: regRol === 'alumno' ? '#38BDF8' : '#94A3B8', fontWeight: '700', fontSize: 13 }}>
-                    🎓 Alumno
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    borderRadius: 8,
-                    alignItems: 'center',
-                    borderWidth: 1,
-                    borderColor: regRol === 'docente' ? '#10B981' : '#334155',
-                    backgroundColor: regRol === 'docente' ? 'rgba(16, 185, 129, 0.15)' : '#0F172A',
-                  }}
-                  onPress={() => setRegRol('docente')}
-                >
-                  <Text style={{ color: regRol === 'docente' ? '#10B981' : '#94A3B8', fontWeight: '700', fontSize: 13 }}>
-                    👨‍🏫 Docente
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={authStyles.inputGroup}>
-              <Text style={authStyles.inputLabel}>N° COLEGIATURA CIP {regRol === 'docente' ? '(REQUERIDO)' : '(OPCIONAL)'}</Text>
+              <Text style={authStyles.inputLabel}>N° COLEGIATURA CIP (OPCIONAL)</Text>
               <View style={authStyles.inputWrapper}>
                 <Ionicons name="ribbon-outline" size={18} color="#64748B" style={authStyles.inputIcon} />
                 <TextInput
@@ -155,6 +115,7 @@ export default function RegistroScreen() {
                 />
               </View>
             </View>
+
 
 
             <View style={authStyles.inputGroup}>

@@ -1,5 +1,5 @@
 // src/components/AdminPanelModal.tsx
-// Panel Administrativo Completo para Docente y Admin (Módulo 07 - CRUD con Supabase & PostgreSQL)
+// Portal de Administración de Cursos y Catálogo (Módulo 07 - CRUD en Tiempo Real con Supabase Cloud)
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -11,14 +11,12 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Image,
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CursosSupabaseService } from '../services/CursosSupabaseService';
-import { UsuariosSupabaseService } from '../services/UsuariosSupabaseService';
 import { Curso } from '../types/curso';
-import { Usuario } from '../types/usuario';
-import { Colors } from '../constants/Colors';
 
 interface AdminPanelModalProps {
   visible: boolean;
@@ -31,39 +29,35 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   onClose,
   onCatalogoModificado,
 }) => {
-  const [tab, setTab] = useState<'cursos' | 'usuarios'>('cursos');
   const [cargando, setCargando] = useState<boolean>(false);
-
-  // Estados de Cursos
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [mostrarFormNuevo, setMostrarFormNuevo] = useState<boolean>(false);
+
+  // Estado para edición rápida de precio
   const [cursoEditandoId, setCursoEditandoId] = useState<string | null>(null);
-  const [nuevoPrecioInput, setNuevoPrecioInput] = useState<string>('');
+  const [precioEditado, setPrecioEditado] = useState<string>('');
+  const [precioRegularEditado, setPrecioRegularEditado] = useState<string>('');
 
-  // Formulario nuevo curso
-  const [nuevoId, setNuevoId] = useState<string>('');
-  const [nuevoTitulo, setNuevoTitulo] = useState<string>('');
-  const [nuevaDesc, setNuevaDesc] = useState<string>('');
-  const [nuevoPrecio, setNuevoPrecio] = useState<string>('149.90');
-  const [nuevoPrecioReg, setNuevoPrecioReg] = useState<string>('250.00');
-  const [nuevaCat, setNuevaCat] = useState<string>('Móvil');
-  const [nuevasHoras, setNuevasHoras] = useState<string>('120');
+  // Formulario de Subida de Nuevo Curso
+  const [titulo, setTitulo] = useState<string>('');
+  const [categoria, setCategoria] = useState<string>('Móvil');
+  const [precio, setPrecio] = useState<string>('149.90');
+  const [precioRegular, setPrecioRegular] = useState<string>('249.90');
+  const [horas, setHoras] = useState<string>('120');
+  const [docente, setDocente] = useState<string>('Ing. Exar Williams Atao (CIP)');
+  const [descripcion, setDescripcion] = useState<string>('');
+  const [imagenUrl, setImagenUrl] = useState<string>(
+    'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600'
+  );
 
-  // Estados de Usuarios
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-
-  // Cargar datos en vivo desde Supabase
-  const recargarDatos = useCallback(async () => {
+  // Cargar cursos en vivo desde Supabase
+  const recargarCursos = useCallback(async () => {
     setCargando(true);
     try {
-      const [cursosCloud, usuariosCloud] = await Promise.all([
-        CursosSupabaseService.obtenerCursos(),
-        UsuariosSupabaseService.obtenerTodos(),
-      ]);
-      setCursos(cursosCloud);
-      setUsuarios(usuariosCloud);
+      const data = await CursosSupabaseService.obtenerCursos();
+      setCursos(data);
     } catch (err) {
-      console.error('[AdminPanel] Error recargando datos:', err);
+      console.error('[AdminPanel] Error al obtener cursos:', err);
     } finally {
       setCargando(false);
     }
@@ -71,91 +65,110 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
   useEffect(() => {
     if (visible) {
-      recargarDatos();
+      recargarCursos();
     }
-  }, [visible, recargarDatos]);
+  }, [visible, recargarCursos]);
 
-  // CREATE: Crear curso en Supabase
-  const handleCrearCurso = async () => {
-    if (!nuevoTitulo.trim() || !nuevoPrecio.trim()) {
-      Alert.alert('Datos incompletos', 'Ingresa al menos el título y el precio del curso.');
+  // =========================================================================
+  // 1. CREATE: Subir un nuevo curso a Supabase Cloud
+  // =========================================================================
+  const handlePublicarCurso = async () => {
+    if (!titulo.trim()) {
+      Alert.alert('Falta Información', 'Ingresa el nombre o título del curso.');
+      return;
+    }
+    const precioNum = parseFloat(precio);
+    if (isNaN(precioNum) || precioNum <= 0) {
+      Alert.alert('Precio Inválido', 'Ingresa un precio de venta mayor a 0.');
       return;
     }
 
-    const slug = nuevoId.trim() || nuevoTitulo.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    const precioNum = parseFloat(nuevoPrecio) || 99.9;
-    const precioRegNum = parseFloat(nuevoPrecioReg) || precioNum * 1.5;
-    const horasNum = parseInt(nuevasHoras, 10) || 100;
+    const slug = titulo
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    const horasNum = parseInt(horas, 10) || 100;
+    const precioRegNum = parseFloat(precioRegular) || precioNum * 1.5;
 
     setCargando(true);
-    const res = await CursosSupabaseService.crearCurso({
-      id: slug,
-      titulo: nuevoTitulo.trim(),
-      descripcion: nuevaDesc.trim() || 'Especialización oficial de Code Andes Academy.',
+    const resultado = await CursosSupabaseService.crearCurso({
+      id: slug || `curso-${Date.now()}`,
+      titulo: titulo.trim(),
+      descripcion: descripcion.trim() || 'Especialización profesional certificada de Code Andes Academy.',
       precio: precioNum,
       precio_regular: precioRegNum,
       horas: horasNum,
       rating: 5.0,
       nivel: 'Intermedio',
-      categoria: nuevaCat.trim() || 'Móvil',
-      docente: 'Ing. Exar Williams Atao (CIP)',
-      imagen_url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600',
+      categoria: categoria.trim() || 'Móvil',
+      docente: docente.trim() || 'Ing. Exar Williams Atao',
+      imagen_url: imagenUrl.trim(),
       activo: true,
     });
-
     setCargando(false);
-    if (res.exito) {
-      Alert.alert('✅ Éxito', `El curso "${nuevoTitulo}" fue registrado en Supabase Cloud.`);
+
+    if (resultado.exito) {
+      Alert.alert('🚀 ¡Curso Publicado!', `"${titulo}" ya está disponible en el catálogo de los alumnos.`);
       setMostrarFormNuevo(false);
-      setNuevoTitulo('');
-      setNuevoId('');
-      setNuevaDesc('');
-      await recargarDatos();
+      setTitulo('');
+      setDescripcion('');
+      await recargarCursos();
       onCatalogoModificado?.();
     } else {
-      Alert.alert('Error en Supabase', res.mensaje);
+      Alert.alert('Error en Supabase', resultado.mensaje);
     }
   };
 
-  // UPDATE: Actualizar precio de curso
+  // =========================================================================
+  // 2. UPDATE: Modificar precio de venta de un curso en Supabase
+  // =========================================================================
   const handleGuardarPrecio = async (id: string) => {
-    const precioNum = parseFloat(nuevoPrecioInput);
-    if (isNaN(precioNum) || precioNum < 0) {
-      Alert.alert('Precio inválido', 'Ingresa un valor numérico válido.');
+    const nuevo = parseFloat(precioEditado);
+    if (isNaN(nuevo) || nuevo < 0) {
+      Alert.alert('Precio Inválido', 'Ingresa un valor numérico válido.');
       return;
     }
 
+    const nuevoReg = precioRegularEditado ? parseFloat(precioRegularEditado) : undefined;
+
     setCargando(true);
-    const res = await CursosSupabaseService.actualizarPrecio(id, precioNum);
+    const res = await CursosSupabaseService.actualizarPrecio(id, nuevo, nuevoReg);
     setCargando(false);
 
     if (res.exito) {
-      Alert.alert('✅ Precio Actualizado', `El nuevo precio es S/ ${precioNum.toFixed(2)}.`);
+      Alert.alert('✅ Precio Actualizado', `El nuevo precio del curso es S/ ${nuevo.toFixed(2)}.`);
       setCursoEditandoId(null);
-      setNuevoPrecioInput('');
-      await recargarDatos();
+      setPrecioEditado('');
+      setPrecioRegularEditado('');
+      await recargarCursos();
       onCatalogoModificado?.();
     } else {
       Alert.alert('Error', res.mensaje);
     }
   };
 
-  // DELETE: Soft delete de curso en Supabase
-  const handleEliminarCurso = (id: string, titulo: string) => {
+  // =========================================================================
+  // 3. DELETE: Retirar curso del catálogo (Soft Delete para proteger boletas)
+  // =========================================================================
+  const handleRetirarCurso = (id: string, nombreCurso: string) => {
     Alert.alert(
-      'Confirmar Retiro de Curso',
-      `¿Deseas retirar "${titulo}" del catálogo activo? (Se aplicará Soft Delete para no afectar compras previas).`,
+      'Retirar Curso del Catálogo',
+      `¿Deseas retirar "${nombreCurso}" de la vista de los estudiantes?\n\n(Se aplicará borrado lógico "Soft Delete" para mantener intacto el historial de compras).`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Retirar del Catálogo',
+          text: 'Retirar del App',
           style: 'destructive',
           onPress: async () => {
             setCargando(true);
             const res = await CursosSupabaseService.eliminarCurso(id, false);
             setCargando(false);
             if (res.exito) {
-              await recargarDatos();
+              Alert.alert('Retirado', `El curso ha sido ocultado del catálogo.`);
+              await recargarCursos();
               onCatalogoModificado?.();
             } else {
               Alert.alert('Error', res.mensaje);
@@ -166,26 +179,19 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     );
   };
 
-  // Cambiar rol de usuario
-  const handleCambiarRol = async (user: Usuario, nuevoRol: 'alumno' | 'docente' | 'admin') => {
-    const ok = await UsuariosSupabaseService.cambiarRol(user.id, nuevoRol);
-    if (ok) {
-      Alert.alert('Rol Actualizado', `${user.nombre} ahora tiene el rol: ${nuevoRol.toUpperCase()}`);
-      await recargarDatos();
-    }
-  };
-
   return (
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          {/* Encabezado */}
+          {/* Encabezado del Portal de Administración */}
           <View style={styles.header}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Ionicons name="shield-checkmark" size={24} color="#F59E0B" />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={styles.adminIconWrapper}>
+                <Ionicons name="settings-sharp" size={20} color="#F59E0B" />
+              </View>
               <View>
-                <Text style={styles.headerTitle}>Panel de Administración</Text>
-                <Text style={styles.headerSubtitle}>Supabase Cloud & PostgreSQL</Text>
+                <Text style={styles.headerTitle}>Portal de Administración</Text>
+                <Text style={styles.headerSubtitle}>Gestión de Cursos & Precios en Supabase</Text>
               </View>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -193,259 +199,229 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Selector de Pestañas */}
-          <View style={styles.tabBar}>
-            <TouchableOpacity
-              style={[styles.tabBtn, tab === 'cursos' && styles.tabBtnActive]}
-              onPress={() => setTab('cursos')}
-            >
-              <Ionicons name="book-outline" size={16} color={tab === 'cursos' ? '#38BDF8' : '#94A3B8'} />
-              <Text style={[styles.tabText, tab === 'cursos' && styles.tabTextActive]}>
-                Cursos ({cursos.length})
+          {/* Barra de Estado / Recarga */}
+          <View style={styles.statusBar}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={styles.onlineDot} />
+              <Text style={styles.statusText}>
+                {cursos.length} cursos activos en PostgreSQL Cloud
               </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.tabBtn, tab === 'usuarios' && styles.tabBtnActive]}
-              onPress={() => setTab('usuarios')}
-            >
-              <Ionicons name="people-outline" size={16} color={tab === 'usuarios' ? '#38BDF8' : '#94A3B8'} />
-              <Text style={[styles.tabText, tab === 'usuarios' && styles.tabTextActive]}>
-                Usuarios ({usuarios.length})
-              </Text>
+            </View>
+            <TouchableOpacity onPress={recargarCursos} style={styles.refreshMiniBtn}>
+              <Ionicons name="reload" size={14} color="#38BDF8" />
+              <Text style={styles.refreshMiniText}>Refrescar</Text>
             </TouchableOpacity>
           </View>
 
           {cargando && (
             <View style={styles.loadingBar}>
-              <ActivityIndicator size="small" color="#38BDF8" />
-              <Text style={styles.loadingText}>Sincronizando con PostgreSQL...</Text>
+              <ActivityIndicator size="small" color="#F59E0B" />
+              <Text style={styles.loadingText}>Sincronizando con Supabase...</Text>
             </View>
           )}
 
-          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1, padding: 16 }}>
-            {/* ===================== TAB CURSOS ===================== */}
-            {tab === 'cursos' && (
-              <View>
-                {/* Botón Nuevo Curso */}
+          <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollArea}>
+            {/* BOTÓN: + Subir Nuevo Curso */}
+            <TouchableOpacity
+              style={[styles.botonSubir, mostrarFormNuevo && styles.botonSubirActivo]}
+              onPress={() => setMostrarFormNuevo(!mostrarFormNuevo)}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={mostrarFormNuevo ? 'chevron-up-circle' : 'add-circle'}
+                size={22}
+                color="#FFFFFF"
+              />
+              <Text style={styles.botonSubirText}>
+                {mostrarFormNuevo ? 'Cerrar Formulario' : '+ Subir Nuevo Curso al App'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* FORMULARIO DE CREACIÓN (CREATE) */}
+            {mostrarFormNuevo && (
+              <View style={styles.formularioCard}>
+                <Text style={styles.formularioTitle}>🚀 Registrar Nuevo Curso en el Catálogo</Text>
+                <Text style={styles.formularioSub}>
+                  Los estudiantes verán este curso reflejado de inmediato en su pantalla.
+                </Text>
+
+                <Text style={styles.label}>TÍTULO DEL CURSO</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ej: Microservicios con Docker y Go"
+                  placeholderTextColor="#64748B"
+                  value={titulo}
+                  onChangeText={setTitulo}
+                />
+
+                <View style={styles.rowInputs}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>CATEGORÍA</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Móvil, Backend, Cloud..."
+                      placeholderTextColor="#64748B"
+                      value={categoria}
+                      onChangeText={setCategoria}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>HORAS ACADÉMICAS</Text>
+                    <TextInput
+                      style={styles.input}
+                      keyboardType="numeric"
+                      placeholder="120"
+                      placeholderTextColor="#64748B"
+                      value={horas}
+                      onChangeText={setHoras}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.rowInputs}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>PRECIO OFERTA (S/)</Text>
+                    <TextInput
+                      style={styles.input}
+                      keyboardType="numeric"
+                      placeholder="149.90"
+                      placeholderTextColor="#64748B"
+                      value={precio}
+                      onChangeText={setPrecio}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>PRECIO REGULAR (S/)</Text>
+                    <TextInput
+                      style={styles.input}
+                      keyboardType="numeric"
+                      placeholder="250.00"
+                      placeholderTextColor="#64748B"
+                      value={precioRegular}
+                      onChangeText={setPrecioRegular}
+                    />
+                  </View>
+                </View>
+
+                <Text style={styles.label}>DOCENTE ASIGNADO</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ing. Exar Williams Atao (CIP)"
+                  placeholderTextColor="#64748B"
+                  value={docente}
+                  onChangeText={setDocente}
+                />
+
+                <Text style={styles.label}>DESCRIPCIÓN DEL PROGRAMA</Text>
+                <TextInput
+                  style={[styles.input, { height: 60 }]}
+                  multiline
+                  placeholder="Temas principales que dominará el alumno..."
+                  placeholderTextColor="#64748B"
+                  value={descripcion}
+                  onChangeText={setDescripcion}
+                />
+
+                <Text style={styles.label}>URL DE LA IMAGEN DE PORTADA</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="https://images.unsplash.com/..."
+                  placeholderTextColor="#64748B"
+                  value={imagenUrl}
+                  onChangeText={setImagenUrl}
+                />
+
                 <TouchableOpacity
-                  style={styles.nuevoCursoBtn}
-                  onPress={() => setMostrarFormNuevo(!mostrarFormNuevo)}
+                  style={styles.btnPublicarSubmit}
+                  onPress={handlePublicarCurso}
+                  disabled={cargando}
                 >
-                  <Ionicons
-                    name={mostrarFormNuevo ? 'close-circle-outline' : 'add-circle-outline'}
-                    size={20}
-                    color="#FFFFFF"
-                  />
-                  <Text style={styles.nuevoCursoBtnText}>
-                    {mostrarFormNuevo ? 'Cancelar Nuevo Curso' : '+ Crear Nuevo Curso en Supabase'}
-                  </Text>
+                  <Ionicons name="cloud-upload-outline" size={18} color="#FFFFFF" />
+                  <Text style={styles.btnPublicarSubmitText}>Publicar en Supabase (INSERT)</Text>
                 </TouchableOpacity>
+              </View>
+            )}
 
-                {/* Formulario Nuevo Curso */}
-                {mostrarFormNuevo && (
-                  <View style={styles.formCard}>
-                    <Text style={styles.formCardTitle}>Registrar Curso en PostgreSQL</Text>
+            {/* LISTADO DE CURSOS EN VIVO (READ, UPDATE, DELETE) */}
+            <Text style={styles.sectionHeader}>Cursos Publicados en el App ({cursos.length})</Text>
 
-                    <Text style={styles.inputLabel}>TÍTULO DEL CURSO</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Ej: Flutter & Supabase Mobile"
-                      placeholderTextColor="#64748B"
-                      value={nuevoTitulo}
-                      onChangeText={setNuevoTitulo}
-                    />
-
-                    <Text style={styles.inputLabel}>SLUG / ID IDENTIFICADOR</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="flutter-supabase-mobile"
-                      placeholderTextColor="#64748B"
-                      value={nuevoId}
-                      onChangeText={setNuevoId}
-                      autoCapitalize="none"
-                    />
-
-                    <View style={{ flexDirection: 'row', gap: 10 }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.inputLabel}>PRECIO (S/)</Text>
-                        <TextInput
-                          style={styles.input}
-                          keyboardType="numeric"
-                          value={nuevoPrecio}
-                          onChangeText={setNuevoPrecio}
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.inputLabel}>PRECIO REGULAR</Text>
-                        <TextInput
-                          style={styles.input}
-                          keyboardType="numeric"
-                          value={nuevoPrecioReg}
-                          onChangeText={setNuevoPrecioReg}
-                        />
-                      </View>
+            {cursos.map((c) => (
+              <View key={c.id} style={styles.cursoCard}>
+                <View style={styles.cursoHeaderRow}>
+                  <Image source={{ uri: c.imagenUrl }} style={styles.cursoThumbnail} />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.cursoTitulo} numberOfLines={2}>
+                      {c.titulo}
+                    </Text>
+                    <Text style={styles.cursoMeta}>
+                      {c.categoria} · {c.duracion || '120 hrs'} · {c.docente}
+                    </Text>
+                    <View style={styles.preciosRow}>
+                      <Text style={styles.precioInversion}>S/ {c.inversion.toFixed(2)}</Text>
+                      {c.precioRegular ? (
+                        <Text style={styles.precioRegularTachado}>
+                          S/ {c.precioRegular.toFixed(2)}
+                        </Text>
+                      ) : null}
                     </View>
+                  </View>
+                </View>
 
-                    <View style={{ flexDirection: 'row', gap: 10 }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.inputLabel}>CATEGORÍA</Text>
-                        <TextInput
-                          style={styles.input}
-                          value={nuevaCat}
-                          onChangeText={setNuevaCat}
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.inputLabel}>HORAS ACADÉMICAS</Text>
-                        <TextInput
-                          style={styles.input}
-                          keyboardType="numeric"
-                          value={nuevasHoras}
-                          onChangeText={setNuevasHoras}
-                        />
-                      </View>
+                {/* Sub-panel para editar precio */}
+                {cursoEditandoId === c.id ? (
+                  <View style={styles.editorPrecioCard}>
+                    <Text style={styles.editorPrecioTitle}>Editar Precio del Curso:</Text>
+                    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                      <TextInput
+                        style={styles.editorInput}
+                        keyboardType="numeric"
+                        placeholder="Precio Venta S/"
+                        placeholderTextColor="#64748B"
+                        value={precioEditado}
+                        onChangeText={setPrecioEditado}
+                        autoFocus
+                      />
+                      <TouchableOpacity
+                        style={styles.btnGuardarPrecio}
+                        onPress={() => handleGuardarPrecio(c.id)}
+                      >
+                        <Text style={styles.btnGuardarPrecioText}>Guardar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.btnCancelarPrecio}
+                        onPress={() => setCursoEditandoId(null)}
+                      >
+                        <Text style={styles.btnCancelarPrecioText}>✕</Text>
+                      </TouchableOpacity>
                     </View>
+                  </View>
+                ) : (
+                  <View style={styles.accionesRow}>
+                    <TouchableOpacity
+                      style={styles.btnAccionEditar}
+                      onPress={() => {
+                        setCursoEditandoId(c.id);
+                        setPrecioEditado(c.inversion.toString());
+                        setPrecioRegularEditado(c.precioRegular?.toString() || '');
+                      }}
+                    >
+                      <Ionicons name="pricetag-outline" size={14} color="#38BDF8" />
+                      <Text style={styles.btnAccionEditarText}>Editar Precio</Text>
+                    </TouchableOpacity>
 
-                    <Text style={styles.inputLabel}>DESCRIPCIÓN</Text>
-                    <TextInput
-                      style={[styles.input, { height: 60 }]}
-                      multiline
-                      placeholder="Resumen del programa..."
-                      placeholderTextColor="#64748B"
-                      value={nuevaDesc}
-                      onChangeText={setNuevaDesc}
-                    />
-
-                    <TouchableOpacity style={styles.guardarCursoBtn} onPress={handleCrearCurso}>
-                      <Text style={styles.guardarCursoBtnText}>🚀 Insertar en Supabase (INSERT)</Text>
+                    <TouchableOpacity
+                      style={styles.btnAccionEliminar}
+                      onPress={() => handleRetirarCurso(c.id, c.titulo)}
+                    >
+                      <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                      <Text style={styles.btnAccionEliminarText}>Retirar del App</Text>
                     </TouchableOpacity>
                   </View>
                 )}
-
-                {/* Lista de Cursos */}
-                <Text style={styles.sectionTitle}>Catálogo Activo en la Nube:</Text>
-                {cursos.map((c) => (
-                  <View key={c.id} style={styles.cursoItem}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <View style={{ flex: 1, paddingRight: 8 }}>
-                        <Text style={styles.cursoTitulo}>{c.titulo}</Text>
-                        <Text style={styles.cursoMeta}>
-                          {c.categoria} · {c.duracion || '120 hrs'} · {c.nivel}
-                        </Text>
-
-                      </View>
-                      <Text style={styles.cursoPrecio}>S/ {c.inversion.toFixed(2)}</Text>
-                    </View>
-
-                    {/* Editor de Precio Rápido */}
-                    {cursoEditandoId === c.id ? (
-                      <View style={styles.editPrecioRow}>
-                        <TextInput
-                          style={styles.editPrecioInput}
-                          keyboardType="numeric"
-                          placeholder={c.inversion.toString()}
-                          placeholderTextColor="#64748B"
-                          value={nuevoPrecioInput}
-                          onChangeText={setNuevoPrecioInput}
-                          autoFocus
-                        />
-                        <TouchableOpacity
-                          style={styles.editPrecioSaveBtn}
-                          onPress={() => handleGuardarPrecio(c.id)}
-                        >
-                          <Text style={styles.editPrecioSaveText}>Guardar</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.editPrecioCancelBtn}
-                          onPress={() => setCursoEditandoId(null)}
-                        >
-                          <Text style={styles.editPrecioCancelText}>✕</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      <View style={styles.cursoAcciones}>
-                        <TouchableOpacity
-                          style={styles.accionBtn}
-                          onPress={() => {
-                            setCursoEditandoId(c.id);
-                            setNuevoPrecioInput(c.inversion.toString());
-                          }}
-                        >
-                          <Ionicons name="pricetag-outline" size={14} color="#38BDF8" />
-                          <Text style={styles.accionBtnText}>Editar Precio</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[styles.accionBtn, { borderColor: '#EF4444' }]}
-                          onPress={() => handleEliminarCurso(c.id, c.titulo)}
-                        >
-                          <Ionicons name="trash-outline" size={14} color="#EF4444" />
-                          <Text style={[styles.accionBtnText, { color: '#EF4444' }]}>Desactivar</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
-                ))}
               </View>
-            )}
+            ))}
 
-            {/* ===================== TAB USUARIOS ===================== */}
-            {tab === 'usuarios' && (
-              <View>
-                <Text style={styles.sectionTitle}>Usuarios en PostgreSQL (public.usuarios):</Text>
-                {usuarios.length === 0 ? (
-                  <Text style={{ color: '#94A3B8', textAlign: 'center', marginTop: 20 }}>
-                    No hay usuarios registrados en la tabla aún.
-                  </Text>
-                ) : (
-                  usuarios.map((u) => (
-                    <View key={u.id} style={styles.usuarioItem}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.usuarioNombre}>{u.nombre}</Text>
-                        <Text style={styles.usuarioEmail}>{u.email}</Text>
-                        {u.cipColegiatura && (
-                          <Text style={styles.usuarioCip}>Colegiatura: {u.cipColegiatura}</Text>
-                        )}
-                      </View>
-                      <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                        <View
-                          style={[
-                            styles.rolBadge,
-                            u.rol === 'admin'
-                              ? styles.rolBadgeAdmin
-                              : u.rol === 'docente'
-                              ? styles.rolBadgeDocente
-                              : styles.rolBadgeAlumno,
-                          ]}
-                        >
-                          <Text style={styles.rolBadgeText}>{u.rol.toUpperCase()}</Text>
-                        </View>
-
-                        <View style={{ flexDirection: 'row', gap: 4 }}>
-                          {u.rol !== 'admin' && (
-                            <TouchableOpacity
-                              style={styles.miniRolBtn}
-                              onPress={() => handleCambiarRol(u, 'admin')}
-                            >
-                              <Text style={styles.miniRolText}>+Admin</Text>
-                            </TouchableOpacity>
-                          )}
-                          {u.rol !== 'docente' && (
-                            <TouchableOpacity
-                              style={styles.miniRolBtn}
-                              onPress={() => handleCambiarRol(u, 'docente')}
-                            >
-                              <Text style={styles.miniRolText}>+Docente</Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      </View>
-                    </View>
-                  ))
-                )}
-              </View>
-            )}
+            <View style={{ height: 40 }} />
           </ScrollView>
         </View>
       </View>
@@ -456,14 +432,14 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: '#070D18',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '90%',
+    maxHeight: '92%',
     minHeight: '75%',
     borderWidth: 1,
     borderColor: '#1E293B',
@@ -472,13 +448,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#1E293B',
   },
+  adminIconWrapper: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    padding: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
   headerTitle: {
     color: '#F8FAFC',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
   },
   headerSubtitle: {
@@ -490,30 +474,35 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#0F172A',
   },
-  tabBar: {
+  statusBar: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: '#0A1222',
     borderBottomWidth: 1,
     borderBottomColor: '#1E293B',
   },
-  tabBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
+  onlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
   },
-  tabBtnActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#38BDF8',
-  },
-  tabText: {
+  statusText: {
     color: '#94A3B8',
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '600',
   },
-  tabTextActive: {
+  refreshMiniBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  refreshMiniText: {
     color: '#38BDF8',
+    fontSize: 11,
     fontWeight: '700',
   },
   loadingBar: {
@@ -522,52 +511,59 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 8,
-    backgroundColor: '#0F172A',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
   },
   loadingText: {
-    color: '#38BDF8',
+    color: '#F59E0B',
     fontSize: 12,
+    fontWeight: '600',
   },
-  sectionTitle: {
-    color: '#F8FAFC',
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 12,
-    marginTop: 8,
+  scrollArea: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 16,
   },
-  nuevoCursoBtn: {
+  botonSubir: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     backgroundColor: '#0284C7',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: 12,
-    marginBottom: 14,
-  },
-  nuevoCursoBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  formCard: {
-    backgroundColor: '#0F172A',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#1E293B',
     marginBottom: 16,
   },
-  formCardTitle: {
+  botonSubirActivo: {
+    backgroundColor: '#334155',
+  },
+  botonSubirText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  formularioCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#38BDF8',
+    marginBottom: 20,
+  },
+  formularioTitle: {
     color: '#38BDF8',
     fontSize: 14,
     fontWeight: '800',
-    marginBottom: 12,
+    marginBottom: 4,
   },
-  inputLabel: {
+  formularioSub: {
+    color: '#94A3B8',
+    fontSize: 11,
+    marginBottom: 14,
+  },
+  label: {
     color: '#94A3B8',
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     marginBottom: 4,
   },
   input: {
@@ -575,35 +571,58 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#334155',
     borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
     color: '#F8FAFC',
     fontSize: 13,
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  guardarCursoBtn: {
+  rowInputs: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  btnPublicarSubmit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     backgroundColor: '#10B981',
     borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 6,
+    paddingVertical: 13,
+    marginTop: 4,
   },
-  guardarCursoBtnText: {
+  btnPublicarSubmitText: {
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 13,
   },
-  cursoItem: {
+  sectionHeader: {
+    color: '#F8FAFC',
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 12,
+  },
+  cursoCard: {
     backgroundColor: '#0F172A',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 14,
     borderWidth: 1,
     borderColor: '#1E293B',
-    marginBottom: 10,
+    marginBottom: 12,
+  },
+  cursoHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cursoThumbnail: {
+    width: 60,
+    height: 60,
+    borderRadius: 10,
+    backgroundColor: '#1E293B',
   },
   cursoTitulo: {
     color: '#F8FAFC',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
   },
   cursoMeta: {
@@ -611,43 +630,81 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
   },
-  cursoPrecio: {
+  preciosRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  precioInversion: {
     color: '#F59E0B',
     fontSize: 15,
     fontWeight: '800',
   },
-  cursoAcciones: {
+  precioRegularTachado: {
+    color: '#64748B',
+    fontSize: 12,
+    textDecorationLine: 'line-through',
+  },
+  accionesRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
-    paddingTop: 8,
+    gap: 10,
+    marginTop: 12,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#1E293B',
   },
-  accionBtn: {
+  btnAccionEditar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#38BDF8',
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
   },
-  accionBtnText: {
+  btnAccionEditarText: {
+    color: '#38BDF8',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  btnAccionEliminar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+  },
+  btnAccionEliminarText: {
+    color: '#EF4444',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  editorPrecioCard: {
+    backgroundColor: '#070D18',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#38BDF8',
+  },
+  editorPrecioTitle: {
     color: '#38BDF8',
     fontSize: 11,
     fontWeight: '700',
+    marginBottom: 6,
   },
-  editPrecioRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 10,
-  },
-  editPrecioInput: {
+  editorInput: {
     flex: 1,
-    backgroundColor: '#070D18',
+    backgroundColor: '#0F172A',
     borderWidth: 1,
     borderColor: '#38BDF8',
     borderRadius: 8,
@@ -655,87 +712,27 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     color: '#F8FAFC',
     fontSize: 14,
+    fontWeight: '700',
   },
-  editPrecioSaveBtn: {
+  btnGuardarPrecio: {
     backgroundColor: '#10B981',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
   },
-  editPrecioSaveText: {
+  btnGuardarPrecioText: {
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 12,
   },
-  editPrecioCancelBtn: {
+  btnCancelarPrecio: {
     backgroundColor: '#334155',
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 8,
   },
-  editPrecioCancelText: {
+  btnCancelarPrecioText: {
     color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  usuarioItem: {
-    backgroundColor: '#0F172A',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#1E293B',
-    marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  usuarioNombre: {
-    color: '#F8FAFC',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  usuarioEmail: {
-    color: '#94A3B8',
-    fontSize: 11,
-  },
-  usuarioCip: {
-    color: '#38BDF8',
-    fontSize: 10,
-    marginTop: 2,
-  },
-  rolBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  rolBadgeAdmin: {
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
-    borderWidth: 1,
-    borderColor: '#F59E0B',
-  },
-  rolBadgeDocente: {
-    backgroundColor: 'rgba(56, 189, 248, 0.2)',
-    borderWidth: 1,
-    borderColor: '#38BDF8',
-  },
-  rolBadgeAlumno: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-    borderWidth: 1,
-    borderColor: '#10B981',
-  },
-  rolBadgeText: {
-    color: '#F8FAFC',
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  miniRolBtn: {
-    backgroundColor: '#1E293B',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 4,
-  },
-  miniRolText: {
-    color: '#94A3B8',
-    fontSize: 9,
     fontWeight: '700',
   },
 });

@@ -76,7 +76,7 @@ export default function WelcomeScreen() {
             onPress={handleIrALogin}
           >
             <Ionicons name="log-in-outline" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
-            <Text style={authStyles.btnPrimaryText}>Iniciar Sesión de Alumno</Text>
+            <Text style={authStyles.btnPrimaryText}>Iniciar Sesión</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
