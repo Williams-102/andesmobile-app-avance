@@ -7,8 +7,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { usePerfilController } from '@/controllers/usePerfilController';
 import { perfilStyles } from '@/styles/perfil.styles';
+import { AdminPanelModal } from '@/components/AdminPanelModal';
 
 export default function PerfilScreen() {
+  const [modalAdminVisible, setModalAdminVisible] = React.useState(false);
   const {
     usuario,
     estaAutenticado,
@@ -51,15 +53,80 @@ export default function PerfilScreen() {
           {estaAutenticado ? usuario?.email : 'Sin sesión activa'}
         </Text>
 
-        {estaAutenticado && usuario?.cipColegiatura && (
-          <View style={perfilStyles.cipBadge}>
-            <Text style={perfilStyles.cipText}>Colegiatura: {usuario.cipColegiatura} · CIP</Text>
+        {estaAutenticado && (
+          <View
+            style={[
+              perfilStyles.cipBadge,
+              usuario?.rol === 'admin'
+                ? { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: '#F59E0B' }
+                : usuario?.rol === 'docente'
+                ? { backgroundColor: 'rgba(56, 189, 248, 0.15)', borderColor: '#38BDF8' }
+                : { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: '#10B981' },
+            ]}
+          >
+            <Text
+              style={[
+                perfilStyles.cipText,
+                {
+                  color:
+                    usuario?.rol === 'admin'
+                      ? '#F59E0B'
+                      : usuario?.rol === 'docente'
+                      ? '#38BDF8'
+                      : '#10B981',
+                },
+              ]}
+            >
+              {usuario?.rol === 'admin'
+                ? '👑 ROL: ADMINISTRADOR'
+                : usuario?.rol === 'docente'
+                ? `👨‍🏫 DOCENTE CIP: ${usuario?.cipColegiatura || 'Colegiado'}`
+                : `🎓 ALUMNO: ${usuario?.cipColegiatura || 'Estudiante'}`}
+            </Text>
           </View>
         )}
       </View>
 
+
       {/* Opciones disponibles */}
       <View style={perfilStyles.opcionesCard}>
+        {/* Acceso exclusivo a Gestión para Admin o Docente */}
+        {estaAutenticado && (usuario?.rol === 'admin' || usuario?.rol === 'docente') && (
+          <TouchableOpacity
+            style={[
+              perfilStyles.opcionFila,
+              {
+                backgroundColor: usuario?.rol === 'admin' ? 'rgba(245, 158, 11, 0.12)' : 'rgba(56, 189, 248, 0.12)',
+                borderWidth: 1,
+                borderColor: usuario?.rol === 'admin' ? '#F59E0B' : '#38BDF8',
+                borderRadius: 10,
+                marginBottom: 6,
+              },
+            ]}
+            onPress={() => setModalAdminVisible(true)}
+          >
+            <Ionicons
+              name={usuario?.rol === 'admin' ? 'shield-checkmark' : 'create-outline'}
+              size={22}
+              color={usuario?.rol === 'admin' ? '#F59E0B' : '#38BDF8'}
+            />
+            <Text
+              style={[
+                perfilStyles.opcionTexto,
+                {
+                  color: usuario?.rol === 'admin' ? '#F59E0B' : '#38BDF8',
+                  fontWeight: '800',
+                },
+              ]}
+            >
+              {usuario?.rol === 'admin'
+                ? '👑 Panel de Administración (CRUD Supabase)'
+                : '👨‍🏫 Gestión de Cursos (Docente CIP)'}
+            </Text>
+            <Ionicons name="chevron-forward" size={18} color={usuario?.rol === 'admin' ? '#F59E0B' : '#38BDF8'} />
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
           style={perfilStyles.opcionFila}
           onPress={() => Alert.alert('Certificaciones', 'Tus certificados con firma digital CIP se cargarán aquí.')}
@@ -68,6 +135,7 @@ export default function PerfilScreen() {
           <Text style={perfilStyles.opcionTexto}>Mis Certificaciones</Text>
           <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
         </TouchableOpacity>
+
 
         {/* Historial de Boletas conectado a AsyncStorage */}
         <TouchableOpacity
@@ -231,6 +299,14 @@ export default function PerfilScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Modal de Gestión Administrativa (CRUD Supabase & Roles) */}
+      <AdminPanelModal
+        visible={modalAdminVisible}
+        onClose={() => setModalAdminVisible(false)}
+      />
     </View>
+
+
   );
 }

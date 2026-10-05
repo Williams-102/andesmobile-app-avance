@@ -18,14 +18,27 @@ export function useAuthController() {
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regCip, setRegCip] = useState('');
+  const [regRol, setRegRol] = useState<'alumno' | 'docente' | 'admin'>('alumno');
 
   // Mensajes de validación / error
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Rellenar credenciales demo para prueba en clase
-  const handleRellenarDemo = useCallback(() => {
+  // Rellenar credenciales demo según rol (para pruebas en clase del Módulo 07)
+  const handleRellenarAlumno = useCallback(() => {
     setLoginEmail('alumno@codeandes.edu.pe');
     setLoginPassword('123456');
+    setErrorMsg('');
+  }, []);
+
+  const handleRellenarDocente = useCallback(() => {
+    setLoginEmail('docente@codeandes.edu.pe');
+    setLoginPassword('docente2026');
+    setErrorMsg('');
+  }, []);
+
+  const handleRellenarAdmin = useCallback(() => {
+    setLoginEmail('admin@codeandes.edu.pe');
+    setLoginPassword('admin2026');
     setErrorMsg('');
   }, []);
 
@@ -70,12 +83,13 @@ export function useAuthController() {
         nombre: regNombre.trim(),
         email: regEmail.trim(),
         cipColegiatura: regCip.trim() || undefined,
+        rol: regRol,
       });
       router.replace('/(tabs)/catalogo');
     } catch {
       setErrorMsg('No se pudo completar el registro.');
     }
-  }, [regNombre, regEmail, regPassword, regCip, registro, router]);
+  }, [regNombre, regEmail, regPassword, regCip, regRol, registro, router]);
 
   // Navegación rápida entre pantallas
   const handleIrALogin = useCallback(() => {
@@ -113,7 +127,12 @@ export function useAuthController() {
     setRegPassword,
     regCip,
     setRegCip,
-    handleRellenarDemo,
+    regRol,
+    setRegRol,
+    handleRellenarDemo: handleRellenarAlumno,
+    handleRellenarAlumno,
+    handleRellenarDocente,
+    handleRellenarAdmin,
     handleLoginSubmit,
     handleRegistroSubmit,
     handleIrALogin,
@@ -121,4 +140,5 @@ export function useAuthController() {
     handleVolver,
     handleContinuarComoInvitado,
   };
+
 }

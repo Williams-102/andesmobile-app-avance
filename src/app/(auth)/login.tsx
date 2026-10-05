@@ -26,11 +26,14 @@ export default function LoginScreen() {
     setLoginEmail,
     loginPassword,
     setLoginPassword,
-    handleRellenarDemo,
+    handleRellenarAlumno,
+    handleRellenarDocente,
+    handleRellenarAdmin,
     handleLoginSubmit,
     handleIrARegistro,
     handleVolver,
   } = useAuthController();
+
 
   return (
     <SafeAreaView style={authStyles.authContainer}>
@@ -98,13 +101,33 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            {/* Tarjeta de Relleno Rápido Demo para Clase */}
-            <View style={authStyles.demoCard}>
-              <Text style={authStyles.demoCardText}>¿Probando en clase?</Text>
-              <TouchableOpacity style={authStyles.demoFillBtn} onPress={handleRellenarDemo}>
-                <Text style={authStyles.demoFillBtnText}>⚡ Rellenar Demo</Text>
-              </TouchableOpacity>
+            {/* Selector de Roles para Pruebas del Módulo 07 */}
+            <View style={[authStyles.demoCard, { flexDirection: 'column', alignItems: 'stretch', gap: 8 }]}>
+              <Text style={[authStyles.demoCardText, { textAlign: 'center', marginBottom: 2 }]}>
+                Roles de Prueba para Clase (Módulo 07):
+              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 6 }}>
+                <TouchableOpacity
+                  style={[authStyles.demoFillBtn, { flex: 1, paddingHorizontal: 4 }]}
+                  onPress={handleRellenarAlumno}
+                >
+                  <Text style={[authStyles.demoFillBtnText, { fontSize: 11 }]}>🎓 Alumno</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[authStyles.demoFillBtn, { flex: 1, paddingHorizontal: 4, backgroundColor: 'rgba(56, 189, 248, 0.15)', borderColor: '#38BDF8' }]}
+                  onPress={handleRellenarDocente}
+                >
+                  <Text style={[authStyles.demoFillBtnText, { fontSize: 11, color: '#38BDF8' }]}>👨‍🏫 Docente</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[authStyles.demoFillBtn, { flex: 1, paddingHorizontal: 4, backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: '#F59E0B' }]}
+                  onPress={handleRellenarAdmin}
+                >
+                  <Text style={[authStyles.demoFillBtnText, { fontSize: 11, color: '#F59E0B' }]}>👑 Admin</Text>
+                </TouchableOpacity>
+              </View>
             </View>
+
 
             {/* Botón de Enviar */}
             <TouchableOpacity

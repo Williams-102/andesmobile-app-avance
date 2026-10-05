@@ -20,13 +20,15 @@ export interface AuthContextType {
   usuario: Usuario | null;
   estaAutenticado: boolean;
   cargando: boolean;
-  login: (email: string, nombre?: string) => Promise<void>;
+  login: (email: string, nombre?: string, rol?: 'alumno' | 'docente' | 'admin') => Promise<void>;
   registro: (datos: {
     nombre: string;
     email: string;
     cipColegiatura?: string;
     telefono?: string;
+    rol?: 'alumno' | 'docente' | 'admin';
   }) => Promise<void>;
   logout: () => void;
   actualizarPerfil: (datos: Partial<Usuario>) => void;
 }
+
