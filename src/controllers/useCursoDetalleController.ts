@@ -1,11 +1,13 @@
 // src/controllers/useCursoDetalleController.ts
-// Controlador de lógica de negocio para la pantalla de Detalle Dinámico de Curso (Módulos 04 y 05)
+// Controlador de lógica de negocio para la pantalla de Detalle Dinámico de Curso (Módulos 04, 05 y 07 - Supabase)
 
-import { useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CURSOS_MOCK } from '@/constants/cursosData';
 import { useCart } from '../context/CartContext';
+import { CursosSupabaseService } from '../services/CursosSupabaseService';
+import { Curso } from '../types/curso';
+import { CURSOS_MOCK } from '@/constants/cursosData';
 
 export function useCursoDetalleController() {
   const router = useRouter();
@@ -18,9 +20,23 @@ export function useCursoDetalleController() {
     instructor?: string;
   }>();
 
-  // Coerción segura de parámetros
+  // Coerción segura de parámetros de ruta
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
-  const cursoEncontrado = CURSOS_MOCK.find((c) => c.id === id);
+  const [cursoEncontrado, setCursoEncontrado] = useState<Curso | undefined>(
+    () => CURSOS_MOCK.find((c) => c.id === id)
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    if (id) {
+      CursosSupabaseService.obtenerCursoPorId(String(id)).then((c) => {
+        if (isMounted && c) setCursoEncontrado(c);
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
 
   const titulo = Array.isArray(params.titulo)
     ? params.titulo[0]

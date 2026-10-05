@@ -1,5 +1,5 @@
 // src/app/(tabs)/catalogo.tsx
-// Catálogo de Cursos conectado a useCatalogoController y getCatalogoStyles (Clean Architecture)
+// Catálogo de Cursos conectado a Supabase Cloud, useCatalogoController y getCatalogoStyles (Clean Architecture)
 
 import React from 'react';
 import {
@@ -10,6 +10,8 @@ import {
   FlatList,
   TouchableOpacity,
   StatusBar,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TarjetaProducto } from '@/components/TarjetaProducto';
@@ -24,6 +26,9 @@ export default function CatalogScreen() {
     selectedCategory,
     setSelectedCategory,
     filteredCursos,
+    cargando,
+    refrescando,
+    handleRefrescar,
     toggleTheme,
     categorias,
   } = useCatalogoController();
@@ -99,23 +104,41 @@ export default function CatalogScreen() {
         </ScrollView>
       </View>
 
-      {/* Listado dinámico de cursos con FlatList optimizada */}
-      <FlatList
-        data={filteredCursos}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TarjetaProducto curso={item} isDarkMode={isDarkMode} />
-        )}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              No se encontraron cursos que coincidan con "{searchQuery}"
-            </Text>
-          </View>
-        }
-      />
+      {/* Indicador de carga inicial */}
+      {cargando && filteredCursos.length === 0 ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#38BDF8" />
+          <Text style={{ color: '#94A3B8', marginTop: 12, fontSize: 13 }}>
+            Cargando especializaciones desde la nube...
+          </Text>
+        </View>
+      ) : (
+        /* Listado dinámico de cursos con FlatList optimizada y Pull-to-Refresh */
+        <FlatList
+          data={filteredCursos}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TarjetaProducto curso={item} isDarkMode={isDarkMode} />
+          )}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refrescando}
+              onRefresh={handleRefrescar}
+              tintColor="#38BDF8"
+              colors={['#38BDF8', '#3ECF8E']}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                No se encontraron cursos que coincidan con "{searchQuery}"
+              </Text>
+            </View>
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }

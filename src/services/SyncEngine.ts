@@ -1,10 +1,11 @@
 // src/services/SyncEngine.ts
-// Motor de sincronización automática para la cola FIFO de transacciones offline
+// Motor de sincronización automática para la cola FIFO de transacciones offline conectada a Supabase Cloud (Módulos 06 y 07)
 
 import { StorageService } from './StorageService';
 import { STORAGE_KEYS } from '../constants/StorageKeys';
 import { AccionOffline } from '../types/offline';
 import { BoletasService } from './BoletasService';
+import { MatriculasSupabaseService } from './MatriculasSupabaseService';
 
 export const SyncEngine = {
   /**
@@ -34,39 +35,60 @@ export const SyncEngine = {
   },
 
   /**
-   * Procesa la cola FIFO en estricto orden cronológico
+   * Procesa la cola FIFO en estricto orden cronológico y despacha a Supabase Cloud
    */
   async procesarCola(): Promise<{ procesados: number; fallidos: number }> {
     const cola = await StorageService.get<AccionOffline[]>(STORAGE_KEYS.OFFLINE_QUEUE, []);
     if (cola.length === 0) return { procesados: 0, fallidos: 0 };
 
-    console.log(`[SyncEngine] Iniciando auto-sync de ${cola.length} acciones pendientes...`);
+    console.log(`[SyncEngine] Iniciando auto-sync de ${cola.length} acciones pendientes hacia Supabase...`);
     let procesados = 0;
     const colaRestante = [...cola];
 
     for (const ticket of cola) {
       try {
-        // En Módulo 06 simulamos la latencia del backend; en Módulo 07 viajará a Supabase
-        await new Promise((resolve) => setTimeout(resolve, 600));
-        console.log(`[SyncEngine] Ticket ${ticket.id} (${ticket.tipo}) sincronizado con éxito.`);
+        console.log(`[SyncEngine] Procesando ticket ${ticket.id} (${ticket.tipo})...`);
 
-        // Generar la boleta oficial registrada con origen offline
+        // Despacho de matrícula hacia Supabase y almacenamiento de boleta local
         if (ticket.tipo === 'INSCRIPCION_CURSO' && ticket.payload) {
           const cursos = (ticket.payload.items || []).map((it: any) => ({
             id: it.id,
             titulo: it.titulo,
             precio: it.precio,
           }));
-          await BoletasService.registrarBoleta({
+
+          const boleta = await BoletasService.registrarBoleta({
             cursos,
             total: ticket.payload.total || 0,
             metodoPago: 'Yape / Plin / Tarjeta',
             estado: 'SINCRONIZADO_OFFLINE',
             ticketOfflineId: ticket.id,
           });
+
+          // ☁️ MÓDULO 07: Inserción permanente en PostgreSQL de Supabase
+          const totalNum = ticket.payload.total || 0;
+          const subtotalNum = totalNum / 1.18;
+          const igvNum = totalNum - subtotalNum;
+
+          await MatriculasSupabaseService.crearMatricula(
+            {
+              id: boleta.id,
+              usuario_id: null,
+              total: totalNum,
+              subtotal: subtotalNum,
+              igv: igvNum,
+              metodo_pago: 'Yape / Plin / Tarjeta',
+              estado: 'completado',
+              ticket_offline_id: ticket.id,
+            },
+            cursos.map((c: any) => ({
+              curso_id: c.id,
+              precio_unitario: c.precio,
+            }))
+          );
         }
 
-        // Retira el ticket sincronizado
+        // Retira el ticket sincronizado de la cola local
         colaRestante.shift();
         await StorageService.set(STORAGE_KEYS.OFFLINE_QUEUE, colaRestante);
         procesados++;

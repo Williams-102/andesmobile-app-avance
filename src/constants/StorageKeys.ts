@@ -8,4 +8,6 @@ export const STORAGE_KEYS = {
   OFFLINE_QUEUE: '@andes:offline_queue:v1',// Cola FIFO de transacciones offline
   THEME_PREFERENCE: '@andes:theme:v1',     // Preferencia de tema Dark/Light
   BOLETAS: '@andes:boletas:v1',            // Historial local de boletas y compras
+  CACHE_CURSOS: '@andes:cache_cursos:v1',  // Copia local de cursos para respaldo offline
 };
+

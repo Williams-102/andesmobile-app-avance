@@ -1,10 +1,11 @@
 // src/controllers/useCatalogoController.ts
-// Controlador de lógica de negocio, filtros y búsqueda para la pantalla de Catálogo (Módulos 02 y 03)
+// Controlador de lógica de negocio, filtros, búsqueda y consumo de Supabase para la pantalla de Catálogo (Módulos 02, 03 y 07)
 
-import { useState, useMemo, useCallback } from 'react';
-import { CURSOS_MOCK } from '@/constants/cursosData';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Curso } from '../types/curso';
+import { CursosSupabaseService } from '../services/CursosSupabaseService';
 
-export const CATEGORIAS = ['Todos', 'Móvil', 'Backend', 'Pagos', 'Seguridad'] as const;
+export const CATEGORIAS = ['Todos', 'Móvil', 'Backend', 'Cloud', 'Pagos', 'Seguridad'] as const;
 export type CategoriaTipo = typeof CATEGORIAS[number];
 
 export function useCatalogoController() {
@@ -12,8 +13,32 @@ export function useCatalogoController() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
 
+  // Estado dinámico conectado a la Base de Datos en Supabase Cloud
+  const [cursos, setCursos] = useState<Curso[]>([]);
+  const [cargando, setCargando] = useState<boolean>(true);
+  const [refrescando, setRefrescando] = useState<boolean>(false);
+
+  const cargarCursos = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefrescando(true);
+    else setCargando(true);
+
+    try {
+      const data = await CursosSupabaseService.obtenerCursos();
+      setCursos(data);
+    } catch (e) {
+      console.error('[useCatalogoController] Error cargando cursos de Supabase:', e);
+    } finally {
+      setCargando(false);
+      setRefrescando(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarCursos();
+  }, [cargarCursos]);
+
   const filteredCursos = useMemo(() => {
-    return CURSOS_MOCK.filter((curso) => {
+    return cursos.filter((curso) => {
       const matchCategory =
         selectedCategory === 'Todos' || curso.categoria === selectedCategory;
       const queryLower = searchQuery.toLowerCase().trim();
@@ -24,11 +49,15 @@ export function useCatalogoController() {
         curso.categoria.toLowerCase().includes(queryLower);
       return matchCategory && matchSearch;
     });
-  }, [selectedCategory, searchQuery]);
+  }, [cursos, selectedCategory, searchQuery]);
 
   const toggleTheme = useCallback(() => {
     setIsDarkMode((prev) => !prev);
   }, []);
+
+  const handleRefrescar = useCallback(() => {
+    cargarCursos(true);
+  }, [cargarCursos]);
 
   return {
     isDarkMode,
@@ -37,6 +66,9 @@ export function useCatalogoController() {
     selectedCategory,
     setSelectedCategory,
     filteredCursos,
+    cargando,
+    refrescando,
+    handleRefrescar,
     toggleTheme,
     categorias: CATEGORIAS,
   };
