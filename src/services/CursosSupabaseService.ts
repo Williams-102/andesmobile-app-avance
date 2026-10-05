@@ -1,5 +1,5 @@
 // src/services/CursosSupabaseService.ts
-// Servicio para consultar el catálogo de especializaciones desde PostgreSQL en Supabase con resiliencia offline
+// Servicio para operaciones CRUD completas en el catálogo de especializaciones desde PostgreSQL en Supabase
 
 import { supabase, isSupabaseConfigured } from './supabase';
 import { CursoDB } from '../types/database';
@@ -47,11 +47,9 @@ function mapCursoDBToCurso(db: CursoDB): Curso {
 }
 
 export const CursosSupabaseService = {
-  /**
-   * Obtiene todos los cursos activos desde Supabase Cloud.
-   * Si no hay red o aún no se han configurado credenciales en el .env,
-   * recurre transparentemente a la caché local persistente en AsyncStorage.
-   */
+  // --------------------------------------------------------------------------
+  // 1. READ: Obtener todos los cursos activos con fallback a caché local
+  // --------------------------------------------------------------------------
   async obtenerCursos(): Promise<Curso[]> {
     if (isSupabaseConfigured) {
       try {
@@ -63,7 +61,6 @@ export const CursosSupabaseService = {
 
         if (!error && data && data.length > 0) {
           const cursosMapeados = (data as CursoDB[]).map(mapCursoDBToCurso);
-          // Guardar copia fresca en AsyncStorage para soporte Offline First
           await StorageService.set(STORAGE_KEYS.CACHE_CURSOS, cursosMapeados);
           console.log(`[CursosSupabaseService] ☁️ ${cursosMapeados.length} cursos cargados en vivo desde PostgreSQL en Supabase.`);
           return cursosMapeados;
@@ -84,16 +81,150 @@ export const CursosSupabaseService = {
       return cacheLocal;
     }
 
-    // Fallback 2: Semilla inicial del catálogo si la app abre por primera vez sin internet
+    // Fallback 2: Semilla inicial si la app abre por primera vez
     await StorageService.set(STORAGE_KEYS.CACHE_CURSOS, CURSOS_MOCK);
     return CURSOS_MOCK;
   },
 
-  /**
-   * Obtiene un curso específico por su identificador
-   */
+  // --------------------------------------------------------------------------
+  // 2. READ BY ID: Obtener curso específico
+  // --------------------------------------------------------------------------
   async obtenerCursoPorId(id: string): Promise<Curso | undefined> {
     const cursos = await this.obtenerCursos();
     return cursos.find((c) => c.id === id);
+  },
+
+  // --------------------------------------------------------------------------
+  // 3. CREATE: Crear un nuevo curso en el catálogo (Panel Administrativo)
+  // --------------------------------------------------------------------------
+  async crearCurso(cursoNuevo: Omit<CursoDB, 'creado_en'>): Promise<{ exito: boolean; mensaje: string; curso?: Curso }> {
+    if (!isSupabaseConfigured) {
+      // Modo local: Guardar en caché
+      const cursos = await this.obtenerCursos();
+      const nuevoMapeado = mapCursoDBToCurso(cursoNuevo as CursoDB);
+      const listaActualizada = [nuevoMapeado, ...cursos];
+      await StorageService.set(STORAGE_KEYS.CACHE_CURSOS, listaActualizada);
+      return { exito: true, mensaje: 'Curso creado localmente (Modo sin Supabase)', curso: nuevoMapeado };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('cursos')
+        .insert([cursoNuevo])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[CursosSupabaseService] Error en INSERT curso:', error.message);
+        return { exito: false, mensaje: error.message };
+      }
+
+      const cursoCreado = mapCursoDBToCurso(data as CursoDB);
+      // Refrescar caché local
+      const cursosActuales = await StorageService.get<Curso[]>(STORAGE_KEYS.CACHE_CURSOS, []);
+      await StorageService.set(STORAGE_KEYS.CACHE_CURSOS, [cursoCreado, ...cursosActuales]);
+
+      console.log(`[CursosSupabaseService] ☁️ Curso "${cursoCreado.titulo}" insertado con éxito en PostgreSQL.`);
+      return { exito: true, mensaje: 'Curso creado con éxito en Supabase Cloud', curso: cursoCreado };
+    } catch (err: any) {
+      return { exito: false, mensaje: err?.message || 'Error de conexión al crear curso' };
+    }
+  },
+
+  // --------------------------------------------------------------------------
+  // 4. UPDATE: Actualizar precio de un curso (Asignación de Precios)
+  // --------------------------------------------------------------------------
+  async actualizarPrecio(id: string, nuevoPrecio: number, precioRegular?: number): Promise<{ exito: boolean; mensaje: string }> {
+    if (!isSupabaseConfigured) {
+      // Modo local
+      const cursos = await this.obtenerCursos();
+      const actualizados = cursos.map((c) =>
+        c.id === id ? { ...c, inversion: nuevoPrecio, precioRegular: precioRegular ?? c.precioRegular } : c
+      );
+      await StorageService.set(STORAGE_KEYS.CACHE_CURSOS, actualizados);
+      return { exito: true, mensaje: 'Precio actualizado localmente' };
+    }
+
+    try {
+      const updateData: any = { precio: nuevoPrecio };
+      if (precioRegular !== undefined) updateData.precio_regular = precioRegular;
+
+      const { error } = await supabase
+        .from('cursos')
+        .update(updateData)
+        .eq('id', id);
+
+      if (error) {
+        console.error('[CursosSupabaseService] Error en UPDATE precio:', error.message);
+        return { exito: false, mensaje: error.message };
+      }
+
+      // Sincronizar en caché local
+      const cursos = await StorageService.get<Curso[]>(STORAGE_KEYS.CACHE_CURSOS, []);
+      const actualizados = cursos.map((c) =>
+        c.id === id ? { ...c, inversion: nuevoPrecio, precioRegular: precioRegular ?? c.precioRegular } : c
+      );
+      await StorageService.set(STORAGE_KEYS.CACHE_CURSOS, actualizados);
+
+      console.log(`[CursosSupabaseService] ☁️ Precio del curso #${id} actualizado a S/ ${nuevoPrecio.toFixed(2)}.`);
+      return { exito: true, mensaje: 'Precio actualizado con éxito en Supabase' };
+    } catch (err: any) {
+      return { exito: false, mensaje: err?.message || 'Error al actualizar precio' };
+    }
+  },
+
+  // --------------------------------------------------------------------------
+  // 5. UPDATE COMPLETO: Modificar datos generales de un curso
+  // --------------------------------------------------------------------------
+  async actualizarCurso(id: string, campos: Partial<CursoDB>): Promise<{ exito: boolean; mensaje: string }> {
+    if (!isSupabaseConfigured) {
+      return { exito: true, mensaje: 'Modificado localmente' };
+    }
+
+    try {
+      const { error } = await supabase
+        .from('cursos')
+        .update(campos)
+        .eq('id', id);
+
+      if (error) return { exito: false, mensaje: error.message };
+      return { exito: true, mensaje: 'Curso actualizado con éxito' };
+    } catch (err: any) {
+      return { exito: false, mensaje: err?.message || 'Error al actualizar curso' };
+    }
+  },
+
+  // --------------------------------------------------------------------------
+  // 6. DELETE: Eliminar o desactivar un curso (Soft Delete recomendado)
+  // --------------------------------------------------------------------------
+  async eliminarCurso(id: string, permanente = false): Promise<{ exito: boolean; mensaje: string }> {
+    if (!isSupabaseConfigured) {
+      const cursos = await this.obtenerCursos();
+      const filtrados = cursos.filter((c) => c.id !== id);
+      await StorageService.set(STORAGE_KEYS.CACHE_CURSOS, filtrados);
+      return { exito: true, mensaje: 'Curso eliminado de la caché local' };
+    }
+
+    try {
+      if (permanente) {
+        // Hard Delete
+        const { error } = await supabase.from('cursos').delete().eq('id', id);
+        if (error) return { exito: false, mensaje: error.message };
+      } else {
+        // Soft Delete (recomendado en producción para preservar integridad con matriculas)
+        const { error } = await supabase.from('cursos').update({ activo: false }).eq('id', id);
+        if (error) return { exito: false, mensaje: error.message };
+      }
+
+      // Remover de caché local
+      const cursos = await StorageService.get<Curso[]>(STORAGE_KEYS.CACHE_CURSOS, []);
+      const filtrados = cursos.filter((c) => c.id !== id);
+      await StorageService.set(STORAGE_KEYS.CACHE_CURSOS, filtrados);
+
+      console.log(`[CursosSupabaseService] 🗑️ Curso #${id} eliminado/desactivado con éxito.`);
+      return { exito: true, mensaje: 'Curso retirado del catálogo con éxito' };
+    } catch (err: any) {
+      return { exito: false, mensaje: err?.message || 'Error al eliminar curso' };
+    }
   },
 };
