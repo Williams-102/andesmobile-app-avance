@@ -55,7 +55,7 @@ export function useAuthController() {
     }
 
     try {
-      await login(loginEmail.trim());
+      await login(loginEmail.trim(), loginPassword.trim());
       router.replace('/(tabs)/catalogo');
     } catch {
       setErrorMsg('Error al conectar con el servidor.');
@@ -82,6 +82,7 @@ export function useAuthController() {
       await registro({
         nombre: regNombre.trim(),
         email: regEmail.trim(),
+        password: regPassword.trim(),
         cipColegiatura: regCip.trim() || undefined,
         rol: regRol,
       });
@@ -100,6 +101,11 @@ export function useAuthController() {
   const handleIrARegistro = useCallback(() => {
     setErrorMsg('');
     router.push('/(auth)/registro');
+  }, [router]);
+
+  const handleIrARecuperar = useCallback(() => {
+    setErrorMsg('');
+    router.push('/(auth)/recuperar-password');
   }, [router]);
 
   const handleVolver = useCallback(() => {
@@ -137,8 +143,8 @@ export function useAuthController() {
     handleRegistroSubmit,
     handleIrALogin,
     handleIrARegistro,
+    handleIrARecuperar,
     handleVolver,
     handleContinuarComoInvitado,
   };
-
 }

@@ -18,17 +18,20 @@ export interface Usuario {
 
 export interface AuthContextType {
   usuario: Usuario | null;
+  token?: string | null;
   estaAutenticado: boolean;
   cargando: boolean;
-  login: (email: string, nombre?: string, rol?: 'alumno' | 'docente' | 'admin') => Promise<void>;
+  login: (email: string, password?: string, nombre?: string, rol?: 'alumno' | 'docente' | 'admin') => Promise<void>;
   registro: (datos: {
     nombre: string;
     email: string;
+    password?: string;
     cipColegiatura?: string;
     telefono?: string;
     rol?: 'alumno' | 'docente' | 'admin';
   }) => Promise<void>;
   logout: () => void;
   actualizarPerfil: (datos: Partial<Usuario>) => void;
+  recuperarPassword?: (email: string) => Promise<{ exito: boolean; mensaje: string }>;
 }
 

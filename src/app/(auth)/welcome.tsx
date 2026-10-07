@@ -22,10 +22,6 @@ export default function WelcomeScreen() {
             <Ionicons name="school" size={44} color="#00B4D8" />
           </View>
 
-          <View style={authStyles.tagPill}>
-            <Text style={authStyles.tagPillText}>Campus Móvil 2026</Text>
-          </View>
-
           <Text style={authStyles.welcomeTitle}>
             Aprende a Crear Apps con <Text style={authStyles.welcomeHighlight}>React Native & Expo</Text>
           </Text>
@@ -33,39 +29,6 @@ export default function WelcomeScreen() {
           <Text style={authStyles.welcomeDesc}>
             Formación especializada de alto nivel con arquitecturas escalables, TypeScript estricto y respaldo del Colegio de Ingenieros del Perú.
           </Text>
-
-          {/* Tarjeta de Características Clave */}
-          <View style={authStyles.featureBox}>
-            <View style={authStyles.featureRow}>
-              <View style={authStyles.featureIconBox}>
-                <Ionicons name="code-slash" size={18} color="#38BDF8" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={authStyles.featureTextTitle}>Enfoque 100% Práctico</Text>
-                <Text style={authStyles.featureTextSub}>Proyectos reales con código limpio e industria.</Text>
-              </View>
-            </View>
-
-            <View style={authStyles.featureRow}>
-              <View style={[authStyles.featureIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
-                <Ionicons name="ribbon" size={18} color="#10B981" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={authStyles.featureTextTitle}>Certificación CIP</Text>
-                <Text style={authStyles.featureTextSub}>Validez curricular por 120 horas académicas.</Text>
-              </View>
-            </View>
-
-            <View style={authStyles.featureRow}>
-              <View style={[authStyles.featureIconBox, { backgroundColor: 'rgba(255, 107, 0, 0.2)' }]}>
-                <Ionicons name="cloud-done" size={18} color="#FF6B00" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={authStyles.featureTextTitle}>Cloud & Supabase</Text>
-                <Text style={authStyles.featureTextSub}>Bases de datos en tiempo real y pasarelas de pago.</Text>
-              </View>
-            </View>
-          </View>
         </View>
 
         {/* Grupo de Botones de Acción */}

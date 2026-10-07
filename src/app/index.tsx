@@ -38,10 +38,6 @@ export default function SplashScreen() {
       <Text style={splashStyles.brandTitle}>CODE ANDES</Text>
       <Text style={splashStyles.brandSubtitle}>ACADEMY &bull; MÓVIL 2026</Text>
 
-      <View style={splashStyles.cipBadge}>
-        <Text style={splashStyles.cipBadgeText}>Avalado por el Colegio de Ingenieros del Perú</Text>
-      </View>
-
       {/* Indicador de carga nativo */}
       <View style={splashStyles.loaderGroup}>
         <ActivityIndicator size="large" color="#00B4D8" />

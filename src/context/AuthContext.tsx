@@ -7,6 +7,8 @@ import { StorageService } from '../services/StorageService';
 import { STORAGE_KEYS } from '../constants/StorageKeys';
 import { UsuariosSupabaseService } from '../services/UsuariosSupabaseService';
 
+import { AuthServiceSupabase } from '../services/AuthServiceSupabase';
+
 // 1. Creación del Canal de Contexto tipado
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -14,19 +16,27 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-// 2. Componente Proveedor (La Antena) con persistencia en disco
+// 2. Componente Proveedor (La Antena) con persistencia en disco y JWT
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [cargando, setCargando] = useState<boolean>(true); // Inicia en true mientras restaura sesión
 
-  // Restauración de sesión persistente en AsyncStorage al arrancar la app
+  // Restauración de sesión persistente en AsyncStorage y Supabase Auth
   useEffect(() => {
     let isMounted = true;
     const restaurarSesion = async () => {
       try {
         const usuarioGuardado = await StorageService.get<Usuario | null>(STORAGE_KEYS.AUTH_USER, null);
-        if (isMounted && usuarioGuardado) {
-          setUsuario(usuarioGuardado);
+        const sesionSupabase = await AuthServiceSupabase.obtenerSesionActual();
+
+        if (isMounted) {
+          if (usuarioGuardado) {
+            setUsuario(usuarioGuardado);
+          }
+          if (sesionSupabase?.access_token) {
+            setToken(sesionSupabase.access_token);
+          }
         }
       } catch (error) {
         console.error('[AuthContext] Error restaurando sesión persistente:', error);
@@ -41,66 +51,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
-  // Iniciar Sesión conectando con Supabase Cloud y roles reales
-  const login = useCallback(async (email: string, nombre?: string, rol?: 'alumno' | 'docente' | 'admin') => {
-    setCargando(true);
-    try {
-      const emailLimpio = email.trim().toLowerCase();
-
-      // 1. Intentar buscar en Supabase Cloud
-      const usuarioEncontrado = await UsuariosSupabaseService.obtenerPorEmail(emailLimpio);
-
-      if (usuarioEncontrado) {
-        setUsuario(usuarioEncontrado);
-        await StorageService.set(STORAGE_KEYS.AUTH_USER, usuarioEncontrado);
-        console.log(`[AuthContext] ☁️ Sesión iniciada como [${usuarioEncontrado.rol.toUpperCase()}]: ${usuarioEncontrado.nombre}`);
-      } else {
-        // 2. Determinar rol automático según el correo o parámetro
-        let rolAsignado: 'alumno' | 'docente' | 'admin' = rol || 'alumno';
-        if (!rol) {
-          if (emailLimpio.includes('admin')) rolAsignado = 'admin';
-          else if (emailLimpio.includes('docente') || emailLimpio.includes('profesor')) rolAsignado = 'docente';
+  // Iniciar Sesión conectando con Supabase Auth & JWT
+  const login = useCallback(
+    async (email: string, password?: string, nombre?: string, rol?: 'alumno' | 'docente' | 'admin') => {
+      setCargando(true);
+      try {
+        const resultado = await AuthServiceSupabase.login(email, password);
+        if (resultado.exito && resultado.usuario) {
+          setUsuario(resultado.usuario);
+          setToken(resultado.token || null);
+          console.log(`[AuthContext] ☁️ Sesión JWT iniciada como [${resultado.usuario.rol.toUpperCase()}]: ${resultado.usuario.nombre}`);
         }
-
-        const nuevoUsuario = await UsuariosSupabaseService.registrarOUsuario({
-          nombre: nombre || (rolAsignado === 'admin' ? 'Administrador Code Andes' : rolAsignado === 'docente' ? 'Prof. Williams (Docente)' : 'Estudiante Code Andes'),
-          email: emailLimpio,
-          rol: rolAsignado,
-          cipColegiatura: rolAsignado !== 'alumno' ? 'CIP-304921' : undefined,
-        });
-
-        setUsuario(nuevoUsuario);
-        console.log(`[AuthContext] ☁️ Nuevo usuario registrado en Supabase como [${nuevoUsuario.rol.toUpperCase()}].`);
+      } catch (error) {
+        console.error('[AuthContext] Error en login:', error);
+        throw error;
+      } finally {
+        setCargando(false);
       }
-    } catch (error) {
-      console.error('[AuthContext] Error en login:', error);
-    } finally {
-      setCargando(false);
-    }
-  }, []);
+    },
+    []
+  );
 
-  // Registrar nueva cuenta en Supabase Cloud con rol
+  // Registrar nueva cuenta en Supabase Cloud con JWT y Rol
   const registro = useCallback(
     async (datos: {
       nombre: string;
       email: string;
+      password?: string;
       cipColegiatura?: string;
       telefono?: string;
       rol?: 'alumno' | 'docente' | 'admin';
     }) => {
       setCargando(true);
       try {
-        const nuevoUsuario = await UsuariosSupabaseService.registrarOUsuario({
-          nombre: datos.nombre,
-          email: datos.email,
-          rol: datos.rol || 'alumno',
-          cipColegiatura: datos.cipColegiatura,
-        });
-
-        setUsuario(nuevoUsuario);
-        console.log(`[AuthContext] ☁️ Registro completado con éxito en Supabase: ${nuevoUsuario.email}`);
+        const resultado = await AuthServiceSupabase.registrar(datos);
+        if (resultado.exito && resultado.usuario) {
+          setUsuario(resultado.usuario);
+          setToken(resultado.token || null);
+          console.log(`[AuthContext] ☁️ Registro JWT completado con éxito en Supabase: ${resultado.usuario.email}`);
+        }
       } catch (error) {
         console.error('[AuthContext] Error en registro:', error);
+        throw error;
       } finally {
         setCargando(false);
       }
@@ -110,8 +102,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Cerrar Sesión y purgar de AsyncStorage
   const logout = useCallback(async () => {
+    await AuthServiceSupabase.cerrarSesion();
     setUsuario(null);
-    await StorageService.remove(STORAGE_KEYS.AUTH_USER);
+    setToken(null);
+  }, []);
+
+  // Recuperar contraseña
+  const recuperarPassword = useCallback(async (email: string) => {
+    return AuthServiceSupabase.recuperarPassword(email);
   }, []);
 
   // Actualizar datos del perfil y sincronizar con AsyncStorage
@@ -132,14 +130,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value = useMemo(
     () => ({
       usuario,
+      token,
       estaAutenticado: !!usuario,
       cargando,
       login,
       registro,
       logout,
       actualizarPerfil,
+      recuperarPassword,
     }),
-    [usuario, cargando, login, registro, logout, actualizarPerfil]
+    [usuario, token, cargando, login, registro, logout, actualizarPerfil, recuperarPassword]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

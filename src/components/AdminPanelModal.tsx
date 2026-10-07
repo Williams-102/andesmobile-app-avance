@@ -15,7 +15,9 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { CursosSupabaseService } from '../services/CursosSupabaseService';
+import { StorageServiceSupabase } from '../services/StorageServiceSupabase';
 import { Curso } from '../types/curso';
 
 interface AdminPanelModalProps {
@@ -49,6 +51,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [imagenUrl, setImagenUrl] = useState<string>(
     'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600'
   );
+  const [subiendoImagen, setSubiendoImagen] = useState<boolean>(false);
 
   // Cargar cursos en vivo desde Supabase
   const recargarCursos = useCallback(async () => {
@@ -68,6 +71,87 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
       recargarCursos();
     }
   }, [visible, recargarCursos]);
+
+  // =========================================================================
+  // EXPO IMAGE PICKER & SUPABASE STORAGE (Módulo 08)
+  // =========================================================================
+  const handleSeleccionarImagenGaleria = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permiso Requerido',
+          'Code Andes necesita acceso a tu galería para adjuntar la foto del curso.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const localUri = result.assets[0].uri;
+        setImagenUrl(localUri);
+
+        // Subir a Supabase Storage
+        setSubiendoImagen(true);
+        const resSubida = await StorageServiceSupabase.subirImagenCurso(localUri);
+        setSubiendoImagen(false);
+
+        if (resSubida.exito && resSubida.url) {
+          setImagenUrl(resSubida.url);
+          Alert.alert('📸 Imagen Lista', 'La portada fue cargada con éxito a Supabase Storage.');
+        }
+      }
+    } catch (err: any) {
+      console.warn('[AdminPanel] Error al abrir galería:', err);
+      Alert.alert('Aviso', 'No se pudo abrir la galería de imágenes.');
+    } finally {
+      setSubiendoImagen(false);
+    }
+  };
+
+  const handleTomarFotoCamara = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permiso Requerido',
+          'Code Andes necesita acceso a la cámara para fotografiar el material del curso.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const localUri = result.assets[0].uri;
+        setImagenUrl(localUri);
+
+        setSubiendoImagen(true);
+        const resSubida = await StorageServiceSupabase.subirImagenCurso(localUri);
+        setSubiendoImagen(false);
+
+        if (resSubida.exito && resSubida.url) {
+          setImagenUrl(resSubida.url);
+          Alert.alert('📸 Foto Capturada', 'La foto fue sincronizada con Supabase Storage.');
+        }
+      }
+    } catch (err: any) {
+      console.warn('[AdminPanel] Error al abrir cámara:', err);
+      Alert.alert('Aviso', 'No se pudo abrir la cámara en este dispositivo.');
+    } finally {
+      setSubiendoImagen(false);
+    }
+  };
 
   // =========================================================================
   // 1. CREATE: Subir un nuevo curso a Supabase Cloud
@@ -322,19 +406,97 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   onChangeText={setDescripcion}
                 />
 
-                <Text style={styles.label}>URL DE LA IMAGEN DE PORTADA</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="https://images.unsplash.com/..."
-                  placeholderTextColor="#64748B"
-                  value={imagenUrl}
-                  onChangeText={setImagenUrl}
-                />
+                {/* SECCIÓN IMAGEN: Expo ImagePicker & Supabase Storage (Módulo 08) */}
+                <Text style={styles.label}>PORTADA DEL CURSO (EXPO IMAGEPICKER & STORAGE)</Text>
+
+                {/* Previsualización en vivo */}
+                <View style={styles.imagePreviewBox}>
+                  {imagenUrl ? (
+                    <Image source={{ uri: imagenUrl }} style={styles.imagePreview} resizeMode="cover" />
+                  ) : (
+                    <View style={styles.imagePlaceholder}>
+                      <Ionicons name="image-outline" size={36} color="#64748B" />
+                      <Text style={{ color: '#64748B', fontSize: 12, marginTop: 4 }}>Sin portada seleccionada</Text>
+                    </View>
+                  )}
+
+                  {subiendoImagen && (
+                    <View style={styles.imageOverlayUploading}>
+                      <ActivityIndicator size="small" color="#38BDF8" />
+                      <Text style={styles.imageUploadingText}>Subiendo a Supabase Storage...</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.imageBadgeCloud}>
+                    <Ionicons name="cloud-done" size={12} color="#10B981" />
+                    <Text style={styles.imageBadgeCloudText}>
+                      {imagenUrl.includes('supabase.co') ? 'Supabase Storage' : 'Vista Previa Local'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Botones de Expo ImagePicker */}
+                <View style={styles.imagePickerBtnsRow}>
+                  <TouchableOpacity
+                    style={styles.btnPickerGallery}
+                    onPress={handleSeleccionarImagenGaleria}
+                    disabled={subiendoImagen}
+                  >
+                    <Ionicons name="images" size={16} color="#FFFFFF" />
+                    <Text style={styles.btnPickerText}>Galería (ImagePicker)</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.btnPickerCamera}
+                    onPress={handleTomarFotoCamara}
+                    disabled={subiendoImagen}
+                  >
+                    <Ionicons name="camera" size={16} color="#FFFFFF" />
+                    <Text style={styles.btnPickerText}>Tomar Foto</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Accesos rápidos de imágenes para la clase */}
+                <Text style={[styles.label, { marginTop: 10, fontSize: 10 }]}>PRESETS RÁPIDOS PARA LA CLASE:</Text>
+                <View style={styles.presetsRow}>
+                  <TouchableOpacity
+                    style={styles.presetChip}
+                    onPress={() =>
+                      setImagenUrl('https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600')
+                    }
+                  >
+                    <Text style={styles.presetChipText}>📱 Móvil</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.presetChip}
+                    onPress={() =>
+                      setImagenUrl('https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600')
+                    }
+                  >
+                    <Text style={styles.presetChipText}>⚡ Backend</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.presetChip}
+                    onPress={() =>
+                      setImagenUrl('https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600')
+                    }
+                  >
+                    <Text style={styles.presetChipText}>☁️ Cloud</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.presetChip}
+                    onPress={() =>
+                      setImagenUrl('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600')
+                    }
+                  >
+                    <Text style={styles.presetChipText}>🤖 IA</Text>
+                  </TouchableOpacity>
+                </View>
 
                 <TouchableOpacity
                   style={styles.btnPublicarSubmit}
                   onPress={handlePublicarCurso}
-                  disabled={cargando}
+                  disabled={cargando || subiendoImagen}
                 >
                   <Ionicons name="cloud-upload-outline" size={18} color="#FFFFFF" />
                   <Text style={styles.btnPublicarSubmitText}>Publicar en Supabase (INSERT)</Text>
@@ -734,5 +896,106 @@ const styles = StyleSheet.create({
   btnCancelarPrecioText: {
     color: '#FFFFFF',
     fontWeight: '700',
+  },
+  imagePreviewBox: {
+    width: '100%',
+    height: 150,
+    backgroundColor: '#070D18',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+    overflow: 'hidden',
+    marginBottom: 10,
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+  },
+  imagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageOverlayUploading: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(7, 13, 24, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  imageUploadingText: {
+    color: '#38BDF8',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  imageBadgeCloud: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  imageBadgeCloudText: {
+    color: '#6EE7B7',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  imagePickerBtnsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 6,
+  },
+  btnPickerGallery: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#0284C7',
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  btnPickerCamera: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#2563EB',
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  btnPickerText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  presetsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 14,
+  },
+  presetChip: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  presetChipText: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '600',
   },
 });
