@@ -14,11 +14,16 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { TarjetaProducto } from '@/components/TarjetaProducto';
 import { useCatalogoController } from '@/controllers/useCatalogoController';
 import { getCatalogoStyles } from '@/styles/catalogo.styles';
+import { useAuth } from '@/context/AuthContext';
+import { AdminPanelModal } from '@/components/AdminPanelModal';
 
 export default function CatalogScreen() {
+  const [modalAdminVisible, setModalAdminVisible] = React.useState(false);
+  const { usuario } = useAuth();
   const {
     isDarkMode,
     searchQuery,
@@ -139,6 +144,44 @@ export default function CatalogScreen() {
           }
         />
       )}
+
+      {/* Botón Flotante para Administrador (Módulo 08) */}
+      {usuario?.rol === 'admin' && (
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            bottom: 24,
+            right: 20,
+            backgroundColor: '#F59E0B',
+            paddingVertical: 12,
+            paddingHorizontal: 18,
+            borderRadius: 30,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            shadowColor: '#F59E0B',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.4,
+            shadowRadius: 8,
+            elevation: 8,
+            zIndex: 99,
+          }}
+          onPress={() => setModalAdminVisible(true)}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="shield-checkmark" size={20} color="#070D18" />
+          <Text style={{ color: '#070D18', fontWeight: '900', fontSize: 13, letterSpacing: 0.5 }}>
+            PANEL ADMIN
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Modal de Administración de Cursos con Expo ImagePicker */}
+      <AdminPanelModal
+        visible={modalAdminVisible}
+        onClose={() => setModalAdminVisible(false)}
+        onCatalogoModificado={handleRefrescar}
+      />
     </SafeAreaView>
   );
 }
