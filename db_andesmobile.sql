@@ -171,3 +171,68 @@ SET
   rol = EXCLUDED.rol,
   cip_colegiatura = EXCLUDED.cip_colegiatura;
 
+-- ----------------------------------------------------------------------------
+-- 8. SUPABASE STORAGE: BUCKET DE CURSOS Y POLÍTICAS (MÓDULO 08)
+-- ----------------------------------------------------------------------------
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'cursos',
+  'cursos',
+  true,
+  5242880, -- Límite de 5 MB por archivo
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 5242880,
+  allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+DROP POLICY IF EXISTS "Lectura publica portadas cursos" ON storage.objects;
+CREATE POLICY "Lectura publica portadas cursos"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'cursos');
+
+DROP POLICY IF EXISTS "Subida de imagenes admin cursos" ON storage.objects;
+CREATE POLICY "Subida de imagenes admin cursos"
+ON storage.objects FOR INSERT
+WITH CHECK (bucket_id = 'cursos');
+
+DROP POLICY IF EXISTS "Actualizacion imagenes admin cursos" ON storage.objects;
+CREATE POLICY "Actualizacion imagenes admin cursos"
+ON storage.objects FOR UPDATE
+USING (bucket_id = 'cursos')
+WITH CHECK (bucket_id = 'cursos');
+
+DROP POLICY IF EXISTS "Eliminacion imagenes admin cursos" ON storage.objects;
+CREATE POLICY "Eliminacion imagenes admin cursos"
+ON storage.objects FOR DELETE
+USING (bucket_id = 'cursos');
+
+-- ----------------------------------------------------------------------------
+-- 9. TRIGGER DE SINCRONIZACIÓN AUTOMÁTICA ENTRE SUPABASE AUTH Y USUARIOS
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.manejar_nuevo_usuario_auth()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.usuarios (id, email, nombre, rol, avatar_url)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'nombre', split_part(NEW.email, '@', 1)),
+    COALESCE(NEW.raw_user_meta_data->>'rol', 'alumno'),
+    COALESCE(NEW.raw_user_meta_data->>'avatar_url', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200')
+  )
+  ON CONFLICT (email) DO UPDATE SET
+    id = EXCLUDED.id,
+    nombre = COALESCE(EXCLUDED.nombre, public.usuarios.nombre),
+    rol = COALESCE(EXCLUDED.rol, public.usuarios.rol);
+    
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.manejar_nuevo_usuario_auth();
+
