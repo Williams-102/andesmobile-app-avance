@@ -2,7 +2,7 @@
 -- CODE ANDES ACADEMY · ESPECIALIZACIÓN EN DESARROLLO MÓVIL 2026
 -- SCRIPT MAESTRO CONSOLIDADO (MÓDULOS 07 + 08)
 -- Docente: Ing. Exar Williams Atao Paucar (CIP Reg. 304921)
--- Incluye: Tablas, Índices, Seed, RLS, Storage, Trigger Auth y Usuarios Demo
+-- Ejecutar en: Supabase Dashboard → SQL Editor → New Query → Run
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
@@ -26,19 +26,19 @@ COMMENT ON TABLE public.usuarios IS 'Perfiles de estudiantes y docentes de Code 
 -- 2. TABLA DE CURSOS (CATÁLOGO DE ESPECIALIZACIONES)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.cursos (
-  id            TEXT PRIMARY KEY,
-  titulo        TEXT NOT NULL,
-  descripcion   TEXT NOT NULL,
-  precio        NUMERIC(10, 2) NOT NULL CHECK (precio >= 0),
+  id             TEXT PRIMARY KEY,
+  titulo         TEXT NOT NULL,
+  descripcion    TEXT NOT NULL,
+  precio         NUMERIC(10, 2) NOT NULL CHECK (precio >= 0),
   precio_regular NUMERIC(10, 2),
-  horas         INTEGER NOT NULL DEFAULT 120,
-  rating        NUMERIC(2, 1) DEFAULT 4.9,
-  nivel         TEXT DEFAULT 'Principiante',
-  categoria     TEXT DEFAULT 'Móvil',
-  docente       TEXT DEFAULT 'Exar Williams Atao',
-  imagen_url    TEXT NOT NULL,
-  activo        BOOLEAN DEFAULT TRUE,
-  creado_en     TIMESTAMPTZ DEFAULT NOW()
+  horas          INTEGER NOT NULL DEFAULT 120,
+  rating         NUMERIC(2, 1) DEFAULT 4.9,
+  nivel          TEXT DEFAULT 'Principiante',
+  categoria      TEXT DEFAULT 'Móvil',
+  docente        TEXT DEFAULT 'Exar Williams Atao',
+  imagen_url     TEXT NOT NULL,
+  activo         BOOLEAN DEFAULT TRUE,
+  creado_en      TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_cursos_categoria ON public.cursos(categoria);
@@ -48,16 +48,16 @@ CREATE INDEX IF NOT EXISTS idx_cursos_activo    ON public.cursos(activo);
 -- 3. TABLA DE MATRÍCULAS (CABECERA DE BOLETA DIGITAL)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.matriculas (
-  id              TEXT PRIMARY KEY,               -- Ej: 'BOL-2026-4821'
-  usuario_id      UUID REFERENCES public.usuarios(id) ON DELETE SET NULL,
-  total           NUMERIC(10, 2) NOT NULL CHECK (total >= 0),
-  subtotal        NUMERIC(10, 2) NOT NULL,
-  igv             NUMERIC(10, 2) NOT NULL,
-  metodo_pago     TEXT NOT NULL DEFAULT 'Yape / Plin / Tarjeta',
-  estado          TEXT NOT NULL DEFAULT 'completado'
-                    CHECK (estado IN ('pendiente', 'completado', 'cancelado')),
-  ticket_offline_id TEXT,                         -- ID de la cola FIFO SyncEngine
-  fecha           TIMESTAMPTZ DEFAULT NOW()
+  id                TEXT PRIMARY KEY,
+  usuario_id        UUID REFERENCES public.usuarios(id) ON DELETE SET NULL,
+  total             NUMERIC(10, 2) NOT NULL CHECK (total >= 0),
+  subtotal          NUMERIC(10, 2) NOT NULL,
+  igv               NUMERIC(10, 2) NOT NULL,
+  metodo_pago       TEXT NOT NULL DEFAULT 'Yape / Plin / Tarjeta',
+  estado            TEXT NOT NULL DEFAULT 'completado'
+                      CHECK (estado IN ('pendiente', 'completado', 'cancelado')),
+  ticket_offline_id TEXT,
+  fecha             TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_matriculas_usuario ON public.matriculas(usuario_id);
@@ -76,7 +76,18 @@ CREATE TABLE IF NOT EXISTS public.matricula_items (
 CREATE INDEX IF NOT EXISTS idx_items_matricula ON public.matricula_items(matricula_id);
 
 -- ----------------------------------------------------------------------------
--- 5. DATOS INICIALES DEL CATÁLOGO (SEED OFICIAL)
+-- 5. GRANT DE PERMISOS PostgreSQL A LOS ROLES DE SUPABASE
+--    (Sin esto, RLS no tiene efecto: la capa base bloquea todo)
+-- ----------------------------------------------------------------------------
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.cursos          TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.usuarios        TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.matriculas      TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.matricula_items TO anon, authenticated;
+
+-- ----------------------------------------------------------------------------
+-- 6. DATOS INICIALES DEL CATÁLOGO (SEED OFICIAL)
 -- ----------------------------------------------------------------------------
 INSERT INTO public.cursos (id, titulo, descripcion, precio, precio_regular, horas, rating, nivel, categoria, docente, imagen_url)
 VALUES
@@ -104,90 +115,53 @@ ON CONFLICT (id) DO UPDATE SET
   descripcion = EXCLUDED.descripcion;
 
 -- ----------------------------------------------------------------------------
--- 6. ROW LEVEL SECURITY (RLS) — HABILITAR EN TODAS LAS TABLAS
+-- 7. ROW LEVEL SECURITY (RLS) — HABILITAR Y CONFIGURAR POLÍTICAS
 -- ----------------------------------------------------------------------------
-ALTER TABLE public.cursos          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.matriculas      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.matricula_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.usuarios        ENABLE ROW LEVEL SECURITY;
 
--- ── CURSOS ──────────────────────────────────────────────────────────────────
--- Lectura pública: solo cursos activos son visibles para alumnos y visitantes
-DROP POLICY IF EXISTS "Lectura publica cursos" ON public.cursos;
-CREATE POLICY "Lectura publica cursos"
-ON public.cursos FOR SELECT
-USING (activo = TRUE);
+-- ── CURSOS: desactivar RLS para permitir operaciones desde el Panel Admin ──
+--    (Ideal para entornos de clase y demos. Las tablas de compras mantienen RLS)
+ALTER TABLE public.cursos DISABLE ROW LEVEL SECURITY;
 
--- Admin puede crear nuevos cursos desde el Panel Móvil
-DROP POLICY IF EXISTS "Permitir crear cursos admin" ON public.cursos;
-CREATE POLICY "Permitir crear cursos admin"
-ON public.cursos FOR INSERT
-WITH CHECK (TRUE);
+-- ── MATRICULAS ───────────────────────────────────────────────────────────────
+ALTER TABLE public.matriculas ENABLE ROW LEVEL SECURITY;
 
--- Admin puede editar precios y desactivar cursos (Soft Delete)
-DROP POLICY IF EXISTS "Permitir actualizar cursos admin" ON public.cursos;
-CREATE POLICY "Permitir actualizar cursos admin"
-ON public.cursos FOR UPDATE
-USING  (TRUE)
-WITH CHECK (TRUE);
-
--- Admin puede eliminar físicamente un curso si es necesario
-DROP POLICY IF EXISTS "Permitir eliminar cursos admin" ON public.cursos;
-CREATE POLICY "Permitir eliminar cursos admin"
-ON public.cursos FOR DELETE
-USING (TRUE);
-
--- ── MATRÍCULAS ───────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "Permitir crear matriculas" ON public.matriculas;
 CREATE POLICY "Permitir crear matriculas"
-ON public.matriculas FOR INSERT
-WITH CHECK (TRUE);
+ON public.matriculas FOR INSERT WITH CHECK (TRUE);
 
 DROP POLICY IF EXISTS "Permitir ver matriculas" ON public.matriculas;
 CREATE POLICY "Permitir ver matriculas"
-ON public.matriculas FOR SELECT
-USING (TRUE);
+ON public.matriculas FOR SELECT USING (TRUE);
 
 -- ── ITEMS DE MATRÍCULA ────────────────────────────────────────────────────────
+ALTER TABLE public.matricula_items ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "Permitir crear items" ON public.matricula_items;
 CREATE POLICY "Permitir crear items"
-ON public.matricula_items FOR INSERT
-WITH CHECK (TRUE);
+ON public.matricula_items FOR INSERT WITH CHECK (TRUE);
 
 DROP POLICY IF EXISTS "Permitir ver items" ON public.matricula_items;
 CREATE POLICY "Permitir ver items"
-ON public.matricula_items FOR SELECT
-USING (TRUE);
+ON public.matricula_items FOR SELECT USING (TRUE);
 
 -- ── USUARIOS ─────────────────────────────────────────────────────────────────
--- Lectura pública de perfiles
+ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "Lectura publica usuarios" ON public.usuarios;
 CREATE POLICY "Lectura publica usuarios"
-ON public.usuarios FOR SELECT
-USING (TRUE);
+ON public.usuarios FOR SELECT USING (TRUE);
 
--- Inserción al registrarse (signUp)
 DROP POLICY IF EXISTS "Permitir crear usuarios" ON public.usuarios;
 CREATE POLICY "Permitir crear usuarios"
-ON public.usuarios FOR INSERT
-WITH CHECK (TRUE);
+ON public.usuarios FOR INSERT WITH CHECK (TRUE);
 
--- Actualización general de perfil
 DROP POLICY IF EXISTS "Permitir actualizar usuarios" ON public.usuarios;
 CREATE POLICY "Permitir actualizar usuarios"
 ON public.usuarios FOR UPDATE
-USING  (TRUE)
-WITH CHECK (TRUE);
-
--- Cada usuario autenticado edita solo su propio perfil vía JWT
-DROP POLICY IF EXISTS "Usuarios editan su propio perfil" ON public.usuarios;
-CREATE POLICY "Usuarios editan su propio perfil"
-ON public.usuarios FOR UPDATE
-USING  (auth.uid() = id OR TRUE)
-WITH CHECK (auth.uid() = id OR TRUE);
+USING (TRUE) WITH CHECK (TRUE);
 
 -- ----------------------------------------------------------------------------
--- 7. USUARIOS DEMO PARA PRUEBAS EN CLASE
+-- 8. USUARIOS DEMO PARA PRUEBAS EN CLASE
 -- ----------------------------------------------------------------------------
 INSERT INTO public.usuarios (id, email, nombre, rol, cip_colegiatura, avatar_url)
 VALUES
@@ -216,12 +190,12 @@ ON CONFLICT (id) DO UPDATE SET
   cip_colegiatura = EXCLUDED.cip_colegiatura;
 
 -- ----------------------------------------------------------------------------
--- 8. SUPABASE STORAGE — BUCKET 'cursos' Y SUS POLÍTICAS RLS
+-- 9. SUPABASE STORAGE — BUCKET 'cursos' Y SUS POLÍTICAS RLS
 -- ----------------------------------------------------------------------------
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'cursos', 'cursos', true,
-  5242880,  -- Límite de 5 MB por imagen
+  5242880,
   ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 )
 ON CONFLICT (id) DO UPDATE SET
@@ -229,34 +203,29 @@ ON CONFLICT (id) DO UPDATE SET
   file_size_limit    = 5242880,
   allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
--- Lectura pública de portadas para todos los alumnos
 DROP POLICY IF EXISTS "Lectura publica portadas cursos" ON storage.objects;
 CREATE POLICY "Lectura publica portadas cursos"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'cursos');
 
--- Subida de imágenes desde el Panel de Administración
 DROP POLICY IF EXISTS "Subida de imagenes admin cursos" ON storage.objects;
 CREATE POLICY "Subida de imagenes admin cursos"
 ON storage.objects FOR INSERT
 WITH CHECK (bucket_id = 'cursos');
 
--- Actualización de imágenes existentes
 DROP POLICY IF EXISTS "Actualizacion imagenes admin cursos" ON storage.objects;
 CREATE POLICY "Actualizacion imagenes admin cursos"
 ON storage.objects FOR UPDATE
-USING  (bucket_id = 'cursos')
-WITH CHECK (bucket_id = 'cursos');
+USING (bucket_id = 'cursos') WITH CHECK (bucket_id = 'cursos');
 
--- Eliminación de imágenes
 DROP POLICY IF EXISTS "Eliminacion imagenes admin cursos" ON storage.objects;
 CREATE POLICY "Eliminacion imagenes admin cursos"
 ON storage.objects FOR DELETE
 USING (bucket_id = 'cursos');
 
 -- ----------------------------------------------------------------------------
--- 9. TRIGGER AUTOMÁTICO AUTH → USUARIOS (Módulo 08)
---    Al registrarse con signUp + JWT, sincroniza auth.users → public.usuarios
+-- 10. TRIGGER AUTOMÁTICO AUTH → USUARIOS (Módulo 08)
+--     Al registrarse con signUp + JWT sincroniza auth.users → public.usuarios
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.manejar_nuevo_usuario_auth()
 RETURNS TRIGGER AS $$
