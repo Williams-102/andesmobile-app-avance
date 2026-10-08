@@ -104,3 +104,34 @@ SET
   nombre = EXCLUDED.nombre,
   rol = EXCLUDED.rol,
   cip_colegiatura = EXCLUDED.cip_colegiatura;
+
+-- ----------------------------------------------------------------------------
+-- 6. POLÍTICAS RLS PARA LA TABLA public.cursos (CREAR, EDITAR, RETIRAR)
+-- ----------------------------------------------------------------------------
+ALTER TABLE public.cursos ENABLE ROW LEVEL SECURITY;
+
+-- Lectura de cursos activos para alumnos y visitantes
+DROP POLICY IF EXISTS "Lectura publica cursos" ON public.cursos;
+CREATE POLICY "Lectura publica cursos"
+ON public.cursos FOR SELECT
+USING (activo = TRUE);
+
+-- Permitir creación de nuevos cursos desde el Panel de Administración
+DROP POLICY IF EXISTS "Permitir crear cursos admin" ON public.cursos;
+CREATE POLICY "Permitir crear cursos admin"
+ON public.cursos FOR INSERT
+WITH CHECK (TRUE);
+
+-- Permitir actualización de precios y estado desde el Panel
+DROP POLICY IF EXISTS "Permitir actualizar cursos admin" ON public.cursos;
+CREATE POLICY "Permitir actualizar cursos admin"
+ON public.cursos FOR UPDATE
+USING (TRUE)
+WITH CHECK (TRUE);
+
+-- Permitir eliminación física si fuera necesario
+DROP POLICY IF EXISTS "Permitir eliminar cursos admin" ON public.cursos;
+CREATE POLICY "Permitir eliminar cursos admin"
+ON public.cursos FOR DELETE
+USING (TRUE);
+
