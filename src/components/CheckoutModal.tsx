@@ -34,7 +34,7 @@ interface CheckoutModalProps {
   onPagoCompletado: (boleta: Boleta) => void;
 }
 
-type MetodoPagoTipo = 'yape' | 'plin' | 'tarjeta';
+export type MetodoPagoTipo = 'yape' | 'plin' | 'tarjeta';
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   visible,
@@ -48,7 +48,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 }) => {
   const { showToast } = useNotification();
 
-  // Estados del modal
+  // Estados reactivos del modal
   const [metodo, setMetodo] = useState<MetodoPagoTipo>('yape');
   const [cargando, setCargando] = useState<boolean>(false);
 
@@ -66,6 +66,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const infoReceptor = useMemo(() => {
     if (metodo === 'yape') {
       return {
+        nombreMetodo: 'YAPE',
         numero: '960 952 665',
         titular: 'Anahi Torre (Code Andes)',
         qrTag: 'QR OFICIAL YAPE',
@@ -73,12 +74,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
     if (metodo === 'plin') {
       return {
+        nombreMetodo: 'PLIN',
         numero: '960 444 777',
         titular: 'Code Andes Academy',
         qrTag: 'QR OFICIAL PLIN',
       };
     }
-    return null;
+    return {
+      nombreMetodo: 'TARJETA',
+      numero: '',
+      titular: '',
+      qrTag: '',
+    };
   }, [metodo]);
 
   // URL del QR Dinamico generado
@@ -183,6 +190,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   };
 
+  // Boton para rellenar comprobante y operacion demo (Yape / Plin) para evaluacion en clase
+  const handleRellenarVoucherDemo = () => {
+    const demoOp = String(Math.floor(100000 + Math.random() * 900000));
+    setVoucherUri('https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=600');
+    setNumeroOperacion(demoOp);
+    showToast({
+      type: 'info',
+      title: 'Datos Demo de Pago Cargados',
+      message: `Comprobante y N° de operacion (${demoOp}) asignados para pruebas.`,
+    });
+  };
+
   // Boton para rellenar tarjeta demo de prueba durante la clase
   const handleRellenarTarjetaDemo = () => {
     setTarjetaNumero('4557 8821 9012 3456');
@@ -213,35 +232,64 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   };
 
-  // Validacion de campos antes de procesar
-  const formularioValido = useMemo(() => {
+  // Procesamiento del pago con validaciones directas y descriptivas
+  const handleProcesarPago = async () => {
+    // 1. Validacion para Yape y Plin
     if (metodo === 'yape' || metodo === 'plin') {
-      return voucherUri !== null && numeroOperacion.trim().length >= 6;
+      const opLimpia = numeroOperacion.trim();
+      if (!opLimpia) {
+        showToast({
+          type: 'warning',
+          title: 'Falta N° de Operacion',
+          message: 'Ingresa los digitos de la operacion bancaria (ej: 048291) o usa el boton demo.',
+        });
+        return;
+      }
+      if (opLimpia.length < 4) {
+        showToast({
+          type: 'warning',
+          title: 'N° de Operacion Corto',
+          message: 'El numero de operacion debe contener al menos 4 digitos numericos.',
+        });
+        return;
+      }
+      if (!voucherUri) {
+        showToast({
+          type: 'warning',
+          title: 'Comprobante Requerido',
+          message: 'Adjunta una captura de tu pago o presiona "Rellenar Comprobante Demo" para evaluar.',
+        });
+        return;
+      }
     }
+
+    // 2. Validacion para Tarjeta Bancaria
     if (metodo === 'tarjeta') {
       const limpia = tarjetaNumero.replace(/\s/g, '');
-      return (
-        limpia.length === 16 &&
-        tarjetaExpiracion.length === 5 &&
-        tarjetaCvv.length >= 3 &&
-        tarjetaTitular.trim().length >= 3
-      );
-    }
-    return false;
-  }, [metodo, voucherUri, numeroOperacion, tarjetaNumero, tarjetaExpiracion, tarjetaCvv, tarjetaTitular]);
-
-  // Procesamiento del pago
-  const handleProcesarPago = async () => {
-    if (!formularioValido) {
-      showToast({
-        type: 'warning',
-        title: 'Datos Incompletos',
-        message:
-          metodo === 'tarjeta'
-            ? 'Completa los 16 digitos de la tarjeta, expiracion y CVV.'
-            : 'Debes adjuntar la foto del comprobante e ingresar el numero de operacion.',
-      });
-      return;
+      if (limpia.length < 16) {
+        showToast({
+          type: 'warning',
+          title: 'Tarjeta Incompleta',
+          message: 'Ingresa los 16 digitos de tu tarjeta bancaria o presiona "Rellenar Tarjeta Demo".',
+        });
+        return;
+      }
+      if (tarjetaExpiracion.length < 5) {
+        showToast({
+          type: 'warning',
+          title: 'Fecha Invalida',
+          message: 'Ingresa la fecha de vencimiento en formato MM/AA (ejemplo: 12/28).',
+        });
+        return;
+      }
+      if (tarjetaCvv.length < 3) {
+        showToast({
+          type: 'warning',
+          title: 'CVV Invalido',
+          message: 'Ingresa los 3 digitos de seguridad del reverso de la tarjeta.',
+        });
+        return;
+      }
     }
 
     setCargando(true);
@@ -249,7 +297,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     try {
       let urlVoucherFinal: string | undefined = undefined;
 
-      // 1. Si es Yape o Plin, subir voucher a Supabase Storage
+      // Subir voucher a Supabase Storage si es Yape o Plin
       if ((metodo === 'yape' || metodo === 'plin') && voucherUri) {
         const subida = await VouchersSupabaseService.subirComprobante(voucherUri, metodo);
         urlVoucherFinal = subida.url;
@@ -259,6 +307,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       const idMatricula = `BOL-2026-${randomCorrelativo}`;
       const serieMatricula = `B001-${String(randomCorrelativo).padStart(6, '0')}`;
 
+      // Metodo de pago 100% dinamico
       const metodoTexto =
         metodo === 'yape'
           ? 'Yape'
@@ -271,7 +320,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           ? tarjetaNumero.replace(/\s/g, '').slice(-4)
           : undefined;
 
-      // 2. Si estamos en modo Offline First: Encolar en SyncEngine
+      const opFinal = numeroOperacion.trim() || undefined;
+
+      // Si estamos en modo Offline First: Encolar en SyncEngine
       if (isOffline) {
         const ticketId = await SyncEngine.encolar({
           tipo: 'INSCRIPCION_CURSO',
@@ -279,8 +330,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             items,
             total,
             metodoPago: metodoTexto,
-            numeroOperacion: numeroOperacion.trim() || undefined,
+            numeroOperacion: opFinal,
             voucherUrl: urlVoucherFinal,
+            ultimosDigitosTarjeta: ultimosDigitos,
             fecha: new Date().toISOString(),
           },
         });
@@ -294,7 +346,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           subtotal,
           igv,
           metodoPago: metodoTexto,
-          numeroOperacion: numeroOperacion.trim() || undefined,
+          numeroOperacion: opFinal,
           voucherUrl: urlVoucherFinal,
           ultimosDigitosTarjeta: ultimosDigitos,
           estado: 'SINCRONIZADO_OFFLINE',
@@ -308,13 +360,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         showToast({
           type: 'success',
           title: 'Matricula Guardada Offline',
-          message: `Ticket: ${ticketId}. Tu matricula y boleta se sincronizaran con Supabase al recuperar la red.`,
+          message: `Ticket: ${ticketId}. Boleta ${serieMatricula} emitida y guardada localmente.`,
           duration: 4500,
         });
         return;
       }
 
-      // 3. Flujo Online: Registrar en Supabase PostgreSQL
+      // Flujo Online: Registrar en Supabase PostgreSQL
       const matriculaPayload = {
         id: idMatricula,
         usuario_id: null,
@@ -322,7 +374,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         subtotal,
         igv,
         metodo_pago: metodoTexto,
-        numero_operacion: numeroOperacion.trim() || null,
+        numero_operacion: opFinal || null,
         voucher_url: urlVoucherFinal || null,
         banco_origen: metodo.toUpperCase(),
         ultimos_digitos_tarjeta: ultimosDigitos || null,
@@ -336,7 +388,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
       await MatriculasSupabaseService.crearMatricula(matriculaPayload, itemsPayload);
 
-      // 4. Registrar boleta en almacenamiento local
+      // Registrar boleta en almacenamiento local
       const boletaOnline = await BoletasService.registrarBoleta({
         id: idMatricula,
         serie: serieMatricula,
@@ -345,7 +397,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         subtotal,
         igv,
         metodoPago: metodoTexto,
-        numeroOperacion: numeroOperacion.trim() || undefined,
+        numeroOperacion: opFinal,
         voucherUrl: urlVoucherFinal,
         ultimosDigitosTarjeta: ultimosDigitos,
         estado: 'COMPLETADO_ONLINE',
@@ -358,7 +410,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       showToast({
         type: 'success',
         title: 'Pago Confirmado',
-        message: `Boleta ${serieMatricula} emitida con exito. Tus cursos han sido activados.`,
+        message: `Boleta ${serieMatricula} emitida exitosamente (${metodoTexto}).`,
         duration: 4000,
       });
     } catch (err: any) {
@@ -477,8 +529,58 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </TouchableOpacity>
             </View>
 
+            {/* Indicador de Metodo Activo */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 8,
+                backgroundColor:
+                  metodo === 'yape'
+                    ? 'rgba(116, 34, 132, 0.15)'
+                    : metodo === 'plin'
+                    ? 'rgba(2, 132, 199, 0.15)'
+                    : 'rgba(59, 130, 246, 0.15)',
+                marginBottom: 14,
+                borderWidth: 1,
+                borderColor:
+                  metodo === 'yape'
+                    ? '#742284'
+                    : metodo === 'plin'
+                    ? '#0284C7'
+                    : '#3B82F6',
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: '700',
+                  color:
+                    metodo === 'yape'
+                      ? '#E9D5FF'
+                      : metodo === 'plin'
+                      ? '#7DD3FC'
+                      : '#93C5FD',
+                }}
+              >
+                Metodo Activo: {infoReceptor.nombreMetodo}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: '800',
+                  color: Colors.secondary,
+                }}
+              >
+                S/ {total.toFixed(2)}
+              </Text>
+            </View>
+
             {/* VISTA 1 & 2: YAPE Y PLIN */}
-            {(metodo === 'yape' || metodo === 'plin') && infoReceptor && (
+            {(metodo === 'yape' || metodo === 'plin') && (
               <View>
                 {/* Seccion QR Dinamico */}
                 <View style={checkoutStyles.seccionQR}>
@@ -514,6 +616,32 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </TouchableOpacity>
                   </View>
                 </View>
+
+                {/* Boton Didactico para Cargar Comprobante Demo */}
+                <TouchableOpacity
+                  style={[
+                    checkoutStyles.botonDemoTarjeta,
+                    {
+                      borderColor: metodo === 'yape' ? 'rgba(116, 34, 132, 0.4)' : 'rgba(2, 132, 199, 0.4)',
+                      backgroundColor: metodo === 'yape' ? 'rgba(116, 34, 132, 0.15)' : 'rgba(2, 132, 199, 0.15)',
+                    },
+                  ]}
+                  onPress={handleRellenarVoucherDemo}
+                >
+                  <Ionicons
+                    name="sparkles-outline"
+                    size={16}
+                    color={metodo === 'yape' ? '#D8B4FE' : '#38BDF8'}
+                  />
+                  <Text
+                    style={[
+                      checkoutStyles.botonDemoTarjetaTexto,
+                      { color: metodo === 'yape' ? '#E9D5FF' : '#7DD3FC' },
+                    ]}
+                  >
+                    Rellenar Comprobante Demo (Prueba Rapida)
+                  </Text>
+                </TouchableOpacity>
 
                 {/* Seccion de Carga de Comprobante (Voucher) */}
                 <Text style={checkoutStyles.seccionTitulo}>
@@ -552,7 +680,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                           textAlign: 'center',
                         }}
                       >
-                        Sube la captura de pantalla de tu {metodo.toUpperCase()} para validar la matricula
+                        Sube la captura de tu {metodo.toUpperCase()} o presiona "Rellenar Comprobante Demo"
                       </Text>
                       <View style={checkoutStyles.voucherBotonesRow}>
                         <TouchableOpacity
@@ -577,16 +705,21 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
                 {/* Input Numero de Operacion */}
                 <View style={checkoutStyles.inputGrupo}>
-                  <Text style={checkoutStyles.inputLabel}>
-                    Numero de Operacion Bancaria (Min. 6 digitos)
-                  </Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <Text style={checkoutStyles.inputLabel}>
+                      Numero de Operacion Bancaria
+                    </Text>
+                    <Text style={{ fontSize: 11, color: Colors.primary, fontWeight: '700' }}>
+                      {numeroOperacion ? `${numeroOperacion.length} digitos` : 'Requerido'}
+                    </Text>
+                  </View>
                   <TextInput
                     style={checkoutStyles.input}
                     placeholder="Ej: 048291"
                     placeholderTextColor={Colors.textMuted}
                     value={numeroOperacion}
-                    onChangeText={setNumeroOperacion}
-                    keyboardType="numeric"
+                    onChangeText={(val) => setNumeroOperacion(val.replace(/[^0-9]/g, ''))}
+                    keyboardType="number-pad"
                     maxLength={10}
                   />
                 </View>
@@ -628,14 +761,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
                 {/* Inputs del Formulario de Tarjeta */}
                 <View style={checkoutStyles.inputGrupo}>
-                  <Text style={checkoutStyles.inputLabel}>Numero de Tarjeta (16 digitos)</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <Text style={checkoutStyles.inputLabel}>Numero de Tarjeta (16 digitos)</Text>
+                    <Text style={{ fontSize: 11, color: Colors.primary, fontWeight: '700' }}>
+                      {tipoTarjeta} ({tarjetaNumero.replace(/\s/g, '').length}/16)
+                    </Text>
+                  </View>
                   <TextInput
                     style={checkoutStyles.input}
                     placeholder="4557 0000 0000 0000"
                     placeholderTextColor={Colors.textMuted}
                     value={tarjetaNumero}
                     onChangeText={handleCambioTarjetaNumero}
-                    keyboardType="numeric"
+                    keyboardType="number-pad"
                     maxLength={19}
                   />
                 </View>
@@ -649,7 +787,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       placeholderTextColor={Colors.textMuted}
                       value={tarjetaExpiracion}
                       onChangeText={handleCambioExpiracion}
-                      keyboardType="numeric"
+                      keyboardType="number-pad"
                       maxLength={5}
                     />
                   </View>
@@ -662,7 +800,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       placeholderTextColor={Colors.textMuted}
                       value={tarjetaCvv}
                       onChangeText={(t) => setTarjetaCvv(t.replace(/\D/g, '').slice(0, 4))}
-                      keyboardType="numeric"
+                      keyboardType="number-pad"
                       secureTextEntry
                       maxLength={4}
                     />
@@ -687,10 +825,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <TouchableOpacity
               style={[
                 checkoutStyles.botonProcesar,
-                (!formularioValido || cargando) && checkoutStyles.botonProcesarDeshabilitado,
+                cargando && checkoutStyles.botonProcesarDeshabilitado,
               ]}
               onPress={handleProcesarPago}
-              disabled={!formularioValido || cargando}
+              disabled={cargando}
             >
               {cargando ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
@@ -698,7 +836,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <>
                   <Ionicons name="shield-checkmark-outline" size={18} color="#FFFFFF" />
                   <Text style={checkoutStyles.botonProcesarTexto}>
-                    Confirmar Pago y Emitir Boleta (S/ {total.toFixed(2)})
+                    Confirmar Pago con {metodo === 'yape' ? 'Yape' : metodo === 'plin' ? 'Plin' : 'Tarjeta'} (S/ {total.toFixed(2)})
                   </Text>
                 </>
               )}

@@ -57,15 +57,18 @@ export const SyncEngine = {
             precio: it.precio,
           }));
 
+          const metodoPagoDinamico = ticket.payload.metodoPago || 'Yape';
           const boleta = await BoletasService.registrarBoleta({
             cursos,
             total: ticket.payload.total || 0,
-            metodoPago: 'Yape / Plin / Tarjeta',
+            metodoPago: metodoPagoDinamico,
+            numeroOperacion: ticket.payload.numeroOperacion,
+            voucherUrl: ticket.payload.voucherUrl,
             estado: 'SINCRONIZADO_OFFLINE',
             ticketOfflineId: ticket.id,
           });
 
-          // Inserción permanente en PostgreSQL de Supabase
+          // Insercion permanente en PostgreSQL de Supabase
           const totalNum = ticket.payload.total || 0;
           const subtotalNum = totalNum / 1.18;
           const igvNum = totalNum - subtotalNum;
@@ -77,7 +80,11 @@ export const SyncEngine = {
               total: totalNum,
               subtotal: subtotalNum,
               igv: igvNum,
-              metodo_pago: 'Yape / Plin / Tarjeta',
+              metodo_pago: metodoPagoDinamico,
+              numero_operacion: ticket.payload.numeroOperacion || null,
+              voucher_url: ticket.payload.voucherUrl || null,
+              banco_origen: metodoPagoDinamico.toUpperCase(),
+              ultimos_digitos_tarjeta: ticket.payload.ultimosDigitosTarjeta || null,
               estado: 'completado',
               ticket_offline_id: ticket.id,
             },
