@@ -127,10 +127,24 @@ export const checkoutStyles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
+  qrWrapperYape: {
+    backgroundColor: '#FFFFFF',
+    padding: 8,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#742284',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   qrImage: {
     width: 190,
     height: 190,
     borderRadius: 8,
+  },
+  qrImageYape: {
+    width: 220,
+    height: 310,
+    borderRadius: 10,
   },
   qrTag: {
     marginTop: 10,

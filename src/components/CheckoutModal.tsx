@@ -29,6 +29,9 @@ import {
   CONFIGURACION_PAGO_POR_DEFECTO,
 } from '../services/PaymentValidationService';
 
+// QR Oficial BCP de Yape importado desde assets
+const QR_YAPE_OFICIAL_ASSET = require('../../assets/qr_app.jpeg');
+
 interface CheckoutModalProps {
   visible: boolean;
   onClose: () => void;
@@ -228,6 +231,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const dataQr = `PAGO_${metodo.toUpperCase()}_A_${dest}_MONTO_${total.toFixed(2)}_ORDEN_${Date.now()}`;
     return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(dataQr)}`;
   }, [metodo, total, configCuentas]);
+
+  // Fuente de imagen para QR Yape (prioriza URL personalizada o el QR oficial BCP de assets/qr_app.jpeg)
+  const fuenteQrYape = useMemo(() => {
+    if (configCuentas.yapeQrImagen) {
+      return { uri: configCuentas.yapeQrImagen };
+    }
+    return QR_YAPE_OFICIAL_ASSET;
+  }, [configCuentas.yapeQrImagen]);
 
   // Detector de franquicia de tarjeta
   const tipoTarjeta = useMemo(() => {
@@ -689,7 +700,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 }}>
                       <Image source={{ uri: editYapeQrImagen }} style={{ width: 44, height: 44, borderRadius: 6 }} />
                       <Text style={{ fontSize: 11, color: '#10B981', fontWeight: '600', flex: 1 }}>
-                        QR Oficial de Yape asignado
+                        QR Oficial personalizado asignado
                       </Text>
                       <TouchableOpacity
                         onPress={() => setEditYapeQrImagen(undefined)}
@@ -699,15 +710,23 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       </TouchableOpacity>
                     </View>
                   ) : (
-                    <TouchableOpacity
-                      style={[checkoutStyles.botonConfigCuentas, { marginTop: 4, marginBottom: 0 }]}
-                      onPress={handleSeleccionarQrOficialYape}
-                    >
-                      <Ionicons name="image-outline" size={14} color={Colors.primary} />
-                      <Text style={checkoutStyles.botonConfigCuentasTexto}>
-                        Cargar Foto de mi QR de Yape (Galeria)
-                      </Text>
-                    </TouchableOpacity>
+                    <View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, marginBottom: 6 }}>
+                        <Ionicons name="checkmark-circle-outline" size={16} color="#10B981" />
+                        <Text style={{ fontSize: 11, color: '#10B981', fontWeight: '600' }}>
+                          QR Oficial BCP activo por defecto (assets/qr_app.jpeg)
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={[checkoutStyles.botonConfigCuentas, { marginTop: 2, marginBottom: 0 }]}
+                        onPress={handleSeleccionarQrOficialYape}
+                      >
+                        <Ionicons name="image-outline" size={14} color={Colors.primary} />
+                        <Text style={checkoutStyles.botonConfigCuentasTexto}>
+                          Cambiar imagen desde Galeria
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   )}
                 </View>
 
@@ -895,10 +914,27 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             {/* VISTA 1 & 2: YAPE Y PLIN */}
             {(metodo === 'yape' || metodo === 'plin') && (
               <View>
-                {/* Seccion QR Dinamico */}
+                {/* Seccion QR Dinamico / Oficial */}
                 <View style={checkoutStyles.seccionQR}>
-                  <View style={checkoutStyles.qrWrapper}>
-                    <Image source={{ uri: qrUrl }} style={checkoutStyles.qrImage} />
+                  <View
+                    style={[
+                      checkoutStyles.qrWrapper,
+                      metodo === 'yape' && checkoutStyles.qrWrapperYape,
+                    ]}
+                  >
+                    {metodo === 'yape' ? (
+                      <Image
+                        source={fuenteQrYape}
+                        style={checkoutStyles.qrImageYape}
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <Image
+                        source={{ uri: qrUrl }}
+                        style={checkoutStyles.qrImage}
+                        resizeMode="contain"
+                      />
+                    )}
                     <View
                       style={[
                         checkoutStyles.qrTag,
@@ -920,7 +956,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       paddingHorizontal: 8,
                     }}
                   >
-                    Toca "Copiar" para pegar el numero {infoReceptor.numero} en tu app de Yape, o escanea el QR oficial.
+                    {metodo === 'yape'
+                      ? `Escanea este codigo QR oficial con tu app de Yape a nombre de ${infoReceptor.titular}, o copia el numero ${infoReceptor.numero}.`
+                      : `Escanea el codigo con tu app de Plin o copia el numero ${infoReceptor.numero} a nombre de ${infoReceptor.titular}.`}
                   </Text>
                 </View>
 
