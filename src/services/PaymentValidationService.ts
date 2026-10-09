@@ -10,9 +10,11 @@ export interface ConfiguracionCuentasPago {
   yapeNumero: string;
   yapeTitular: string;
   yapeBanco: string;
+  yapeQrImagen?: string;
   plinNumero: string;
   plinTitular: string;
   plinBanco: string;
+  plinQrImagen?: string;
   tarjetaCuentaDestino: string;
   tarjetaTitularDestino: string;
   tarjetaBancoDestino: string;
@@ -20,10 +22,10 @@ export interface ConfiguracionCuentasPago {
 }
 
 export const CONFIGURACION_PAGO_POR_DEFECTO: ConfiguracionCuentasPago = {
-  yapeNumero: '960 952 665',
-  yapeTitular: 'Anahi Torre (Code Andes)',
+  yapeNumero: '916 694 173',
+  yapeTitular: 'Exar Williams Atao Paucar',
   yapeBanco: 'Banco de Credito del Peru (BCP)',
-  plinNumero: '960 444 777',
+  plinNumero: '916 694 173',
   plinTitular: 'Code Andes Academy S.A.C.',
   plinBanco: 'BBVA / Interbank',
   tarjetaCuentaDestino: '193-9821049-0-44',

@@ -64,8 +64,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [mostrarConfigCuentas, setMostrarConfigCuentas] = useState<boolean>(false);
   const [editYapeNumero, setEditYapeNumero] = useState<string>(CONFIGURACION_PAGO_POR_DEFECTO.yapeNumero);
   const [editYapeTitular, setEditYapeTitular] = useState<string>(CONFIGURACION_PAGO_POR_DEFECTO.yapeTitular);
+  const [editYapeQrImagen, setEditYapeQrImagen] = useState<string | undefined>(undefined);
   const [editPlinNumero, setEditPlinNumero] = useState<string>(CONFIGURACION_PAGO_POR_DEFECTO.plinNumero);
   const [editPlinTitular, setEditPlinTitular] = useState<string>(CONFIGURACION_PAGO_POR_DEFECTO.plinTitular);
+  const [editPlinQrImagen, setEditPlinQrImagen] = useState<string | undefined>(undefined);
   const [editTarjetaCuenta, setEditTarjetaCuenta] = useState<string>(CONFIGURACION_PAGO_POR_DEFECTO.tarjetaCuentaDestino);
   const [editTarjetaTitular, setEditTarjetaTitular] = useState<string>(CONFIGURACION_PAGO_POR_DEFECTO.tarjetaTitularDestino);
   const [editCci, setEditCci] = useState<string>(CONFIGURACION_PAGO_POR_DEFECTO.cciDestino);
@@ -89,8 +91,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         setConfigCuentas(cfg);
         setEditYapeNumero(cfg.yapeNumero);
         setEditYapeTitular(cfg.yapeTitular);
+        setEditYapeQrImagen(cfg.yapeQrImagen);
         setEditPlinNumero(cfg.plinNumero);
         setEditPlinTitular(cfg.plinTitular);
+        setEditPlinQrImagen(cfg.plinQrImagen);
         setEditTarjetaCuenta(cfg.tarjetaCuentaDestino);
         setEditTarjetaTitular(cfg.tarjetaTitularDestino);
         setEditCci(cfg.cciDestino);
@@ -98,15 +102,54 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   }, [visible]);
 
+  // Subir imagen del QR oficial emitido por Yape
+  const handleSeleccionarQrOficialYape = async () => {
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.9,
+        base64: true,
+      });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        const localUri = res.assets[0].uri;
+        const b64 = res.assets[0].base64;
+        setEditYapeQrImagen(localUri);
+
+        const subida = await VouchersSupabaseService.subirComprobante(
+          localUri,
+          'qr_yape_oficial',
+          b64 || undefined
+        );
+        if (subida.exito && subida.url) {
+          setEditYapeQrImagen(subida.url);
+        }
+        showToast({
+          type: 'success',
+          title: 'QR Oficial Asignado',
+          message: 'Tu imagen oficial de QR de Yape fue cargada con exito.',
+        });
+      }
+    } catch (err) {
+      showToast({
+        type: 'error',
+        title: 'Error de Imagen',
+        message: 'No se pudo cargar la imagen del QR.',
+      });
+    }
+  };
+
   // Guardar configuracion de cuentas personalizada
   const handleGuardarConfigCuentas = async () => {
     const nueva: ConfiguracionCuentasPago = {
       yapeNumero: editYapeNumero.trim() || CONFIGURACION_PAGO_POR_DEFECTO.yapeNumero,
       yapeTitular: editYapeTitular.trim() || CONFIGURACION_PAGO_POR_DEFECTO.yapeTitular,
       yapeBanco: CONFIGURACION_PAGO_POR_DEFECTO.yapeBanco,
+      yapeQrImagen: editYapeQrImagen,
       plinNumero: editPlinNumero.trim() || CONFIGURACION_PAGO_POR_DEFECTO.plinNumero,
       plinTitular: editPlinTitular.trim() || CONFIGURACION_PAGO_POR_DEFECTO.plinTitular,
       plinBanco: CONFIGURACION_PAGO_POR_DEFECTO.plinBanco,
+      plinQrImagen: editPlinQrImagen,
       tarjetaCuentaDestino: editTarjetaCuenta.trim() || CONFIGURACION_PAGO_POR_DEFECTO.tarjetaCuentaDestino,
       tarjetaTitularDestino: editTarjetaTitular.trim() || CONFIGURACION_PAGO_POR_DEFECTO.tarjetaTitularDestino,
       tarjetaBancoDestino: CONFIGURACION_PAGO_POR_DEFECTO.tarjetaBancoDestino,
@@ -128,8 +171,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setConfigCuentas(def);
     setEditYapeNumero(def.yapeNumero);
     setEditYapeTitular(def.yapeTitular);
+    setEditYapeQrImagen(undefined);
     setEditPlinNumero(def.plinNumero);
     setEditPlinTitular(def.plinTitular);
+    setEditPlinQrImagen(undefined);
     setEditTarjetaCuenta(def.tarjetaCuentaDestino);
     setEditTarjetaTitular(def.tarjetaTitularDestino);
     setEditCci(def.cciDestino);
@@ -171,8 +216,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     };
   }, [metodo, configCuentas]);
 
-  // URL del QR Dinamico generado segun cuenta de destino y monto exacto
+  // URL del QR oficial o Dinamico
   const qrUrl = useMemo(() => {
+    if (metodo === 'yape' && configCuentas.yapeQrImagen) {
+      return configCuentas.yapeQrImagen;
+    }
+    if (metodo === 'plin' && configCuentas.plinQrImagen) {
+      return configCuentas.plinQrImagen;
+    }
     const dest = (metodo === 'yape' ? configCuentas.yapeNumero : configCuentas.plinNumero).replace(/\s/g, '');
     const dataQr = `PAGO_${metodo.toUpperCase()}_A_${dest}_MONTO_${total.toFixed(2)}_ORDEN_${Date.now()}`;
     return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(dataQr)}`;
@@ -631,6 +682,35 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   />
                 </View>
 
+                {/* Subir foto de QR Oficial de Yape */}
+                <View style={checkoutStyles.configSeccionGrupo}>
+                  <Text style={checkoutStyles.configLabel}>Imagen de tu QR Oficial de Yape (BCP):</Text>
+                  {editYapeQrImagen ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                      <Image source={{ uri: editYapeQrImagen }} style={{ width: 44, height: 44, borderRadius: 6 }} />
+                      <Text style={{ fontSize: 11, color: '#10B981', fontWeight: '600', flex: 1 }}>
+                        QR Oficial de Yape asignado
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => setEditYapeQrImagen(undefined)}
+                        style={{ padding: 6 }}
+                      >
+                        <Ionicons name="trash-outline" size={16} color={Colors.danger} />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={[checkoutStyles.botonConfigCuentas, { marginTop: 4, marginBottom: 0 }]}
+                      onPress={handleSeleccionarQrOficialYape}
+                    >
+                      <Ionicons name="image-outline" size={14} color={Colors.primary} />
+                      <Text style={checkoutStyles.botonConfigCuentasTexto}>
+                        Cargar Foto de mi QR de Yape (Galeria)
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
                 <View style={checkoutStyles.configSeccionGrupo}>
                   <Text style={checkoutStyles.configLabel}>Numero Celular Plin Destino:</Text>
                   <TextInput
@@ -830,6 +910,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       <Text style={checkoutStyles.qrTagTexto}>{infoReceptor.qrTag}</Text>
                     </View>
                   </View>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: Colors.textMuted,
+                      textAlign: 'center',
+                      marginTop: 8,
+                      lineHeight: 16,
+                      paddingHorizontal: 8,
+                    }}
+                  >
+                    Toca "Copiar" para pegar el numero {infoReceptor.numero} en tu app de Yape, o escanea el QR oficial.
+                  </Text>
                 </View>
 
                 {/* Tarjeta de Cuenta y Boton Copiar */}
