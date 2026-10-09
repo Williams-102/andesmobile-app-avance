@@ -29,8 +29,9 @@ import {
   CONFIGURACION_PAGO_POR_DEFECTO,
 } from '../services/PaymentValidationService';
 
-// QR Oficial BCP de Yape importado desde assets
+// QRs Oficiales importados desde assets
 const QR_YAPE_OFICIAL_ASSET = require('../../assets/qr-app-yape.jpeg');
+const QR_PLIN_OFICIAL_ASSET = require('../../assets/qr-app-plin.jpeg');
 
 interface CheckoutModalProps {
   visible: boolean;
@@ -276,6 +277,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
     return QR_YAPE_OFICIAL_ASSET;
   }, [configCuentas.yapeQrImagen]);
+
+  // Fuente de imagen para QR Plin (prioriza URL personalizada o el QR oficial de assets/qr-app-plin.jpeg)
+  const fuenteQrPlin = useMemo(() => {
+    if (configCuentas.plinQrImagen) {
+      return { uri: configCuentas.plinQrImagen };
+    }
+    return QR_PLIN_OFICIAL_ASSET;
+  }, [configCuentas.plinQrImagen]);
 
   // Detector de franquicia de tarjeta
   const tipoTarjeta = useMemo(() => {
@@ -807,15 +816,23 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       </TouchableOpacity>
                     </View>
                   ) : (
-                    <TouchableOpacity
-                      style={[checkoutStyles.botonConfigCuentas, { marginTop: 4, marginBottom: 0 }]}
-                      onPress={handleSeleccionarQrOficialPlin}
-                    >
-                      <Ionicons name="image-outline" size={14} color={Colors.primary} />
-                      <Text style={checkoutStyles.botonConfigCuentasTexto}>
-                        Cargar Foto de mi QR de Plin (Galeria)
-                      </Text>
-                    </TouchableOpacity>
+                    <View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, marginBottom: 6 }}>
+                        <Ionicons name="checkmark-circle-outline" size={16} color="#10B981" />
+                        <Text style={{ fontSize: 11, color: '#10B981', fontWeight: '600' }}>
+                          QR Oficial Plin activo por defecto (assets/qr-app-plin.jpeg)
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={[checkoutStyles.botonConfigCuentas, { marginTop: 2, marginBottom: 0 }]}
+                        onPress={handleSeleccionarQrOficialPlin}
+                      >
+                        <Ionicons name="image-outline" size={14} color={Colors.primary} />
+                        <Text style={checkoutStyles.botonConfigCuentasTexto}>
+                          Cambiar imagen desde Galeria
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   )}
                 </View>
 
@@ -997,7 +1014,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       />
                     ) : (
                       <Image
-                        source={{ uri: qrUrl }}
+                        source={fuenteQrPlin}
                         style={checkoutStyles.qrImagePlin}
                         resizeMode="contain"
                       />
