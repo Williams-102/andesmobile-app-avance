@@ -1,7 +1,7 @@
 // src/components/CheckoutModal.tsx
 // Modal de Checkout interactivo con Yape, Plin, Tarjeta Bancaria, QR Dinamico y subida de Vouchers (Modulo 09)
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -23,6 +23,11 @@ import { BoletasService } from '../services/BoletasService';
 import { MatriculasSupabaseService } from '../services/MatriculasSupabaseService';
 import { SyncEngine } from '../services/SyncEngine';
 import { useAuth } from '../context/AuthContext';
+import {
+  PaymentValidationService,
+  ConfiguracionCuentasPago,
+  CONFIGURACION_PAGO_POR_DEFECTO,
+} from '../services/PaymentValidationService';
 
 interface CheckoutModalProps {
   visible: boolean;
@@ -54,7 +59,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [metodo, setMetodo] = useState<MetodoPagoTipo>('yape');
   const [cargando, setCargando] = useState<boolean>(false);
 
+  // Configuracion de cuentas receptoras (personalizable en clase)
+  const [configCuentas, setConfigCuentas] = useState<ConfiguracionCuentasPago>(CONFIGURACION_PAGO_POR_DEFECTO);
+  const [mostrarConfigCuentas, setMostrarConfigCuentas] = useState<boolean>(false);
+  const [editYapeNumero, setEditYapeNumero] = useState<string>(CONFIGURACION_PAGO_POR_DEFECTO.yapeNumero);
+  const [editYapeTitular, setEditYapeTitular] = useState<string>(CONFIGURACION_PAGO_POR_DEFECTO.yapeTitular);
+  const [editPlinNumero, setEditPlinNumero] = useState<string>(CONFIGURACION_PAGO_POR_DEFECTO.plinNumero);
+  const [editPlinTitular, setEditPlinTitular] = useState<string>(CONFIGURACION_PAGO_POR_DEFECTO.plinTitular);
+  const [editTarjetaCuenta, setEditTarjetaCuenta] = useState<string>(CONFIGURACION_PAGO_POR_DEFECTO.tarjetaCuentaDestino);
+  const [editTarjetaTitular, setEditTarjetaTitular] = useState<string>(CONFIGURACION_PAGO_POR_DEFECTO.tarjetaTitularDestino);
+  const [editCci, setEditCci] = useState<string>(CONFIGURACION_PAGO_POR_DEFECTO.cciDestino);
+
   // Estados para Yape y Plin
+  const [celularEmisor, setCelularEmisor] = useState<string>('');
   const [voucherUri, setVoucherUri] = useState<string | null>(null);
   const [voucherBase64, setVoucherBase64] = useState<string | null>(null);
   const [numeroOperacion, setNumeroOperacion] = useState<string>('');
@@ -65,45 +82,112 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [tarjetaCvv, setTarjetaCvv] = useState<string>('');
   const [tarjetaTitular, setTarjetaTitular] = useState<string>('');
 
-  // Informacion del receptor segun metodo
+  // Cargar configuracion persistida al abrir el modal
+  useEffect(() => {
+    if (visible) {
+      PaymentValidationService.obtenerConfiguracion().then((cfg) => {
+        setConfigCuentas(cfg);
+        setEditYapeNumero(cfg.yapeNumero);
+        setEditYapeTitular(cfg.yapeTitular);
+        setEditPlinNumero(cfg.plinNumero);
+        setEditPlinTitular(cfg.plinTitular);
+        setEditTarjetaCuenta(cfg.tarjetaCuentaDestino);
+        setEditTarjetaTitular(cfg.tarjetaTitularDestino);
+        setEditCci(cfg.cciDestino);
+      });
+    }
+  }, [visible]);
+
+  // Guardar configuracion de cuentas personalizada
+  const handleGuardarConfigCuentas = async () => {
+    const nueva: ConfiguracionCuentasPago = {
+      yapeNumero: editYapeNumero.trim() || CONFIGURACION_PAGO_POR_DEFECTO.yapeNumero,
+      yapeTitular: editYapeTitular.trim() || CONFIGURACION_PAGO_POR_DEFECTO.yapeTitular,
+      yapeBanco: CONFIGURACION_PAGO_POR_DEFECTO.yapeBanco,
+      plinNumero: editPlinNumero.trim() || CONFIGURACION_PAGO_POR_DEFECTO.plinNumero,
+      plinTitular: editPlinTitular.trim() || CONFIGURACION_PAGO_POR_DEFECTO.plinTitular,
+      plinBanco: CONFIGURACION_PAGO_POR_DEFECTO.plinBanco,
+      tarjetaCuentaDestino: editTarjetaCuenta.trim() || CONFIGURACION_PAGO_POR_DEFECTO.tarjetaCuentaDestino,
+      tarjetaTitularDestino: editTarjetaTitular.trim() || CONFIGURACION_PAGO_POR_DEFECTO.tarjetaTitularDestino,
+      tarjetaBancoDestino: CONFIGURACION_PAGO_POR_DEFECTO.tarjetaBancoDestino,
+      cciDestino: editCci.trim() || CONFIGURACION_PAGO_POR_DEFECTO.cciDestino,
+    };
+    await PaymentValidationService.guardarConfiguracion(nueva);
+    setConfigCuentas(nueva);
+    setMostrarConfigCuentas(false);
+    showToast({
+      type: 'success',
+      title: 'Cuentas Actualizadas',
+      message: 'Los datos de cobro han sido guardados para esta y futuras sesiones.',
+    });
+  };
+
+  // Restablecer configuracion de cuentas a valores institucionales
+  const handleRestablecerConfigCuentas = async () => {
+    const def = await PaymentValidationService.restablecerConfiguracionPorDefecto();
+    setConfigCuentas(def);
+    setEditYapeNumero(def.yapeNumero);
+    setEditYapeTitular(def.yapeTitular);
+    setEditPlinNumero(def.plinNumero);
+    setEditPlinTitular(def.plinTitular);
+    setEditTarjetaCuenta(def.tarjetaCuentaDestino);
+    setEditTarjetaTitular(def.tarjetaTitularDestino);
+    setEditCci(def.cciDestino);
+    setMostrarConfigCuentas(false);
+    showToast({
+      type: 'info',
+      title: 'Cuentas Restablecidas',
+      message: 'Se restauraron los numeros oficiales de Code Andes Academy.',
+    });
+  };
+
+  // Informacion del receptor segun metodo y configuracion
   const infoReceptor = useMemo(() => {
     if (metodo === 'yape') {
       return {
         nombreMetodo: 'YAPE',
-        numero: '960 952 665',
-        titular: 'Anahi Torre (Code Andes)',
+        numero: configCuentas.yapeNumero,
+        titular: configCuentas.yapeTitular,
+        banco: configCuentas.yapeBanco,
         qrTag: 'QR OFICIAL YAPE',
       };
     }
     if (metodo === 'plin') {
       return {
         nombreMetodo: 'PLIN',
-        numero: '960 444 777',
-        titular: 'Code Andes Academy',
+        numero: configCuentas.plinNumero,
+        titular: configCuentas.plinTitular,
+        banco: configCuentas.plinBanco,
         qrTag: 'QR OFICIAL PLIN',
       };
     }
     return {
-      nombreMetodo: 'TARJETA',
-      numero: '',
-      titular: '',
-      qrTag: '',
+      nombreMetodo: 'TARJETA BANCARIA',
+      numero: configCuentas.tarjetaCuentaDestino,
+      titular: configCuentas.tarjetaTitularDestino,
+      banco: configCuentas.tarjetaBancoDestino,
+      cci: configCuentas.cciDestino,
+      qrTag: 'PASARELA VISA / MC',
     };
-  }, [metodo]);
+  }, [metodo, configCuentas]);
 
-  // URL del QR Dinamico generado
+  // URL del QR Dinamico generado segun cuenta de destino y monto exacto
   const qrUrl = useMemo(() => {
-    const dataQr = `PAGO_${metodo.toUpperCase()}_MONTO_${total.toFixed(2)}_ORDEN_${Date.now()}`;
+    const dest = (metodo === 'yape' ? configCuentas.yapeNumero : configCuentas.plinNumero).replace(/\s/g, '');
+    const dataQr = `PAGO_${metodo.toUpperCase()}_A_${dest}_MONTO_${total.toFixed(2)}_ORDEN_${Date.now()}`;
     return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(dataQr)}`;
-  }, [metodo, total]);
+  }, [metodo, total, configCuentas]);
 
   // Detector de franquicia de tarjeta
   const tipoTarjeta = useMemo(() => {
-    const cleaned = tarjetaNumero.replace(/\s/g, '');
-    if (cleaned.startsWith('4')) return 'VISA';
-    if (cleaned.startsWith('5')) return 'MASTERCARD';
-    if (cleaned.startsWith('3')) return 'AMEX';
-    return 'TARJETA';
+    return PaymentValidationService.detectarFranquicia(tarjetaNumero);
+  }, [tarjetaNumero]);
+
+  // Validacion Luhn en tiempo real de la tarjeta
+  const validacionTarjetaLuhn = useMemo(() => {
+    const limpio = tarjetaNumero.replace(/\s/g, '');
+    if (limpio.length < 13) return null;
+    return PaymentValidationService.validarNumeroTarjeta(tarjetaNumero);
   }, [tarjetaNumero]);
 
   // Copiar numero al portapapeles
@@ -202,24 +286,25 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const demoOp = String(Math.floor(100000 + Math.random() * 900000));
     setVoucherUri('https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=600');
     setVoucherBase64(null);
+    setCelularEmisor('984 512 603');
     setNumeroOperacion(demoOp);
     showToast({
       type: 'info',
       title: 'Datos Demo de Pago Cargados',
-      message: `Comprobante y N° de operacion (${demoOp}) asignados para pruebas.`,
+      message: `Celular (984 512 603) y N° de operacion (${demoOp}) asignados para pruebas.`,
     });
   };
 
-  // Boton para rellenar tarjeta demo de prueba durante la clase
+  // Boton para rellenar tarjeta demo de prueba que cumple estrictamente el algoritmo de Luhn
   const handleRellenarTarjetaDemo = () => {
-    setTarjetaNumero('4557 8821 9012 3456');
+    setTarjetaNumero('4242 4242 4242 4242'); // Tarjeta Visa real valida (Luhn checksum correcto)
     setTarjetaExpiracion('12/28');
     setTarjetaCvv('842');
     setTarjetaTitular(usuario?.nombre ? usuario.nombre.toUpperCase() : 'ESTUDIANTE ANDES');
     showToast({
       type: 'info',
-      title: 'Datos Demo Cargados',
-      message: 'Tarjeta Visa de pruebas precargada para evaluacion rapida.',
+      title: 'Tarjeta Demo Cargada',
+      message: 'Tarjeta Visa de pruebas con Checksum Luhn valido cargada para evaluacion rapida.',
     });
   };
 
@@ -240,27 +325,30 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   };
 
-  // Procesamiento del pago con validaciones directas y descriptivas
+  // Procesamiento del pago con validaciones financieras reales (sin datos ficticios)
   const handleProcesarPago = async () => {
-    // 1. Validacion para Yape y Plin
+    // 1. Validacion estricta para Yape y Plin
     if (metodo === 'yape' || metodo === 'plin') {
-      const opLimpia = numeroOperacion.trim();
-      if (!opLimpia) {
+      const valCel = PaymentValidationService.validarCelularPeru(celularEmisor);
+      if (!valCel.esValido) {
         showToast({
           type: 'warning',
-          title: 'Falta N° de Operacion',
-          message: 'Ingresa los digitos de la operacion bancaria (ej: 048291) o usa el boton demo.',
+          title: 'Celular Invalido',
+          message: valCel.mensaje || 'Ingresa un numero de celular peruano de 9 digitos que inicie con 9.',
         });
         return;
       }
-      if (opLimpia.length < 4) {
+
+      const valOp = PaymentValidationService.validarNumeroOperacion(numeroOperacion);
+      if (!valOp.esValido) {
         showToast({
           type: 'warning',
-          title: 'N° de Operacion Corto',
-          message: 'El numero de operacion debe contener al menos 4 digitos numericos.',
+          title: 'N° de Operacion Invalido',
+          message: valOp.mensaje || 'Ingresa el numero de operacion bancaria autentico.',
         });
         return;
       }
+
       if (!voucherUri) {
         showToast({
           type: 'warning',
@@ -271,30 +359,44 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
     }
 
-    // 2. Validacion para Tarjeta Bancaria
+    // 2. Validacion estricta para Tarjeta Bancaria (Algoritmo de Luhn, fecha y CVV)
     if (metodo === 'tarjeta') {
-      const limpia = tarjetaNumero.replace(/\s/g, '');
-      if (limpia.length < 16) {
+      const valTarjeta = PaymentValidationService.validarNumeroTarjeta(tarjetaNumero);
+      if (!valTarjeta.esValido) {
         showToast({
           type: 'warning',
-          title: 'Tarjeta Incompleta',
-          message: 'Ingresa los 16 digitos de tu tarjeta bancaria o presiona "Rellenar Tarjeta Demo".',
+          title: 'Tarjeta Invalida',
+          message: valTarjeta.mensaje || 'El numero de tarjeta no cumple el algoritmo bancario (Luhn / Mod 10).',
         });
         return;
       }
-      if (tarjetaExpiracion.length < 5) {
+
+      const valFecha = PaymentValidationService.validarFechaExpiracion(tarjetaExpiracion);
+      if (!valFecha.esValido) {
         showToast({
           type: 'warning',
-          title: 'Fecha Invalida',
-          message: 'Ingresa la fecha de vencimiento en formato MM/AA (ejemplo: 12/28).',
+          title: 'Vencimiento Invalido',
+          message: valFecha.mensaje || 'Ingresa una fecha de vigencia valida en formato MM/AA.',
         });
         return;
       }
-      if (tarjetaCvv.length < 3) {
+
+      const valCvv = PaymentValidationService.validarCVV(tarjetaCvv, tipoTarjeta);
+      if (!valCvv.esValido) {
         showToast({
           type: 'warning',
           title: 'CVV Invalido',
-          message: 'Ingresa los 3 digitos de seguridad del reverso de la tarjeta.',
+          message: valCvv.mensaje || 'Ingresa los digitos de seguridad del reverso de la tarjeta.',
+        });
+        return;
+      }
+
+      const valTitular = PaymentValidationService.validarTitularTarjeta(tarjetaTitular);
+      if (!valTitular.esValido) {
+        showToast({
+          type: 'warning',
+          title: 'Titular Invalido',
+          message: valTitular.mensaje || 'Ingresa el nombre y apellido del titular como figura en la tarjeta.',
         });
         return;
       }
@@ -481,6 +583,116 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <Text style={checkoutStyles.resumenMontoValor}>S/ {total.toFixed(2)}</Text>
             </View>
 
+            {/* Boton para Desplegar Configuracion de Cuentas Destino */}
+            <TouchableOpacity
+              style={checkoutStyles.botonConfigCuentas}
+              onPress={() => setMostrarConfigCuentas(!mostrarConfigCuentas)}
+            >
+              <Ionicons
+                name={mostrarConfigCuentas ? 'chevron-up-outline' : 'settings-outline'}
+                size={14}
+                color={Colors.primary}
+              />
+              <Text style={checkoutStyles.botonConfigCuentasTexto}>
+                {mostrarConfigCuentas
+                  ? 'Ocultar Configuracion de Cuentas'
+                  : 'Configurar Cuentas de Cobro (Yape, Plin, Tarjeta)'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Panel Desplegable de Configuracion de Cuentas Destino */}
+            {mostrarConfigCuentas && (
+              <View style={checkoutStyles.configCard}>
+                <Text style={checkoutStyles.configTitulo}>Ajustes de Cuentas Receptoras</Text>
+                <Text style={checkoutStyles.configSubtitulo}>
+                  Configura a que numero o cuenta bancaria se dirigen los pagos de los estudiantes en clase:
+                </Text>
+
+                <View style={checkoutStyles.configSeccionGrupo}>
+                  <Text style={checkoutStyles.configLabel}>Numero Celular Yape Destino:</Text>
+                  <TextInput
+                    style={checkoutStyles.configInput}
+                    value={editYapeNumero}
+                    onChangeText={setEditYapeNumero}
+                    placeholder="960 952 665"
+                    placeholderTextColor={Colors.textMuted}
+                    keyboardType="phone-pad"
+                  />
+                </View>
+
+                <View style={checkoutStyles.configSeccionGrupo}>
+                  <Text style={checkoutStyles.configLabel}>Titular de la Cuenta Yape:</Text>
+                  <TextInput
+                    style={checkoutStyles.configInput}
+                    value={editYapeTitular}
+                    onChangeText={setEditYapeTitular}
+                    placeholder="Nombre del Titular Yape"
+                    placeholderTextColor={Colors.textMuted}
+                  />
+                </View>
+
+                <View style={checkoutStyles.configSeccionGrupo}>
+                  <Text style={checkoutStyles.configLabel}>Numero Celular Plin Destino:</Text>
+                  <TextInput
+                    style={checkoutStyles.configInput}
+                    value={editPlinNumero}
+                    onChangeText={setEditPlinNumero}
+                    placeholder="960 444 777"
+                    placeholderTextColor={Colors.textMuted}
+                    keyboardType="phone-pad"
+                  />
+                </View>
+
+                <View style={checkoutStyles.configSeccionGrupo}>
+                  <Text style={checkoutStyles.configLabel}>Titular de la Cuenta Plin:</Text>
+                  <TextInput
+                    style={checkoutStyles.configInput}
+                    value={editPlinTitular}
+                    onChangeText={setEditPlinTitular}
+                    placeholder="Nombre del Titular Plin"
+                    placeholderTextColor={Colors.textMuted}
+                  />
+                </View>
+
+                <View style={checkoutStyles.configSeccionGrupo}>
+                  <Text style={checkoutStyles.configLabel}>Cuenta Corriente / Tarjeta de Abono:</Text>
+                  <TextInput
+                    style={checkoutStyles.configInput}
+                    value={editTarjetaCuenta}
+                    onChangeText={setEditTarjetaCuenta}
+                    placeholder="193-9821049-0-44"
+                    placeholderTextColor={Colors.textMuted}
+                  />
+                </View>
+
+                <View style={checkoutStyles.configSeccionGrupo}>
+                  <Text style={checkoutStyles.configLabel}>Codigo de Cuenta Interbancario (CCI):</Text>
+                  <TextInput
+                    style={checkoutStyles.configInput}
+                    value={editCci}
+                    onChangeText={setEditCci}
+                    placeholder="002-193009821049044-12"
+                    placeholderTextColor={Colors.textMuted}
+                  />
+                </View>
+
+                <View style={checkoutStyles.configBotonesRow}>
+                  <TouchableOpacity
+                    style={checkoutStyles.botonGuardarConfig}
+                    onPress={handleGuardarConfigCuentas}
+                  >
+                    <Text style={checkoutStyles.botonGuardarConfigTexto}>Guardar Cuentas</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={checkoutStyles.botonResetConfig}
+                    onPress={handleRestablecerConfigCuentas}
+                  >
+                    <Text style={checkoutStyles.botonResetConfigTexto}>Por Defecto</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
             {/* Selector de Metodo de Pago (Tabs) */}
             <View style={checkoutStyles.tabsContainer}>
               <TouchableOpacity
@@ -623,6 +835,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 {/* Tarjeta de Cuenta y Boton Copiar */}
                 <View style={checkoutStyles.infoCuentaCard}>
                   <View style={checkoutStyles.infoFila}>
+                    <Text style={checkoutStyles.infoLabel}>Banco / Servicio:</Text>
+                    <Text style={checkoutStyles.infoValor}>{infoReceptor.banco || infoReceptor.nombreMetodo}</Text>
+                  </View>
+                  <View style={checkoutStyles.infoFila}>
                     <Text style={checkoutStyles.infoLabel}>Titular de la Cuenta:</Text>
                     <Text style={checkoutStyles.infoValor}>{infoReceptor.titular}</Text>
                   </View>
@@ -724,6 +940,27 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   )}
                 </View>
 
+                {/* Input Celular Emisor */}
+                <View style={checkoutStyles.inputGrupo}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <Text style={checkoutStyles.inputLabel}>
+                      Tu Celular Emisor ({metodo === 'yape' ? 'Yape' : 'Plin'})
+                    </Text>
+                    <Text style={{ fontSize: 11, color: Colors.primary, fontWeight: '700' }}>
+                      {celularEmisor.replace(/\s/g, '').length}/9 digitos
+                    </Text>
+                  </View>
+                  <TextInput
+                    style={checkoutStyles.input}
+                    placeholder="Ej: 984 512 603"
+                    placeholderTextColor={Colors.textMuted}
+                    value={celularEmisor}
+                    onChangeText={(val) => setCelularEmisor(val.replace(/[^0-9]/g, '').slice(0, 9))}
+                    keyboardType="phone-pad"
+                    maxLength={9}
+                  />
+                </View>
+
                 {/* Input Numero de Operacion */}
                 <View style={checkoutStyles.inputGrupo}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -750,6 +987,22 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             {/* VISTA 3: TARJETA BANCARIA */}
             {metodo === 'tarjeta' && (
               <View>
+                {/* Datos de Abono y Cuenta de Destino */}
+                <View style={checkoutStyles.bancoDestinoCard}>
+                  <View style={checkoutStyles.bancoDestinoFila}>
+                    <Text style={checkoutStyles.infoLabel}>Banco Receptor:</Text>
+                    <Text style={checkoutStyles.infoValor}>{configCuentas.tarjetaBancoDestino}</Text>
+                  </View>
+                  <View style={checkoutStyles.bancoDestinoFila}>
+                    <Text style={checkoutStyles.infoLabel}>Cuenta Corriente:</Text>
+                    <Text style={checkoutStyles.infoValor}>{configCuentas.tarjetaCuentaDestino}</Text>
+                  </View>
+                  <View style={checkoutStyles.bancoDestinoFila}>
+                    <Text style={checkoutStyles.infoLabel}>CCI Interbancario:</Text>
+                    <Text style={checkoutStyles.infoValor}>{configCuentas.cciDestino}</Text>
+                  </View>
+                </View>
+
                 {/* Previsualizacion Visual de Tarjeta de Credito / Debito */}
                 <View style={checkoutStyles.tarjetaCard}>
                   <View style={checkoutStyles.tarjetaCabecera}>
@@ -776,21 +1029,39 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 >
                   <Ionicons name="sparkles-outline" size={16} color="#60A5FA" />
                   <Text style={checkoutStyles.botonDemoTarjetaTexto}>
-                    Rellenar Tarjeta Demo de Prueba
+                    Rellenar Tarjeta Demo (Luhn Valido)
                   </Text>
                 </TouchableOpacity>
 
                 {/* Inputs del Formulario de Tarjeta */}
                 <View style={checkoutStyles.inputGrupo}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6, alignItems: 'center' }}>
                     <Text style={checkoutStyles.inputLabel}>Numero de Tarjeta (16 digitos)</Text>
-                    <Text style={{ fontSize: 11, color: Colors.primary, fontWeight: '700' }}>
-                      {tipoTarjeta} ({tarjetaNumero.replace(/\s/g, '').length}/16)
-                    </Text>
+                    {validacionTarjetaLuhn ? (
+                      validacionTarjetaLuhn.esValido ? (
+                        <View style={checkoutStyles.badgeLuhnValido}>
+                          <Ionicons name="checkmark-circle" size={12} color="#10B981" />
+                          <Text style={[checkoutStyles.badgeLuhnTexto, { color: '#10B981' }]}>
+                            {tipoTarjeta} - Luhn Valido
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={checkoutStyles.badgeLuhnInvalido}>
+                          <Ionicons name="alert-circle" size={12} color="#EF4444" />
+                          <Text style={[checkoutStyles.badgeLuhnTexto, { color: '#EF4444' }]}>
+                            Luhn Invalido
+                          </Text>
+                        </View>
+                      )
+                    ) : (
+                      <Text style={{ fontSize: 11, color: Colors.primary, fontWeight: '700' }}>
+                        {tipoTarjeta} ({tarjetaNumero.replace(/\s/g, '').length}/16)
+                      </Text>
+                    )}
                   </View>
                   <TextInput
                     style={checkoutStyles.input}
-                    placeholder="4557 0000 0000 0000"
+                    placeholder="4242 4242 4242 4242"
                     placeholderTextColor={Colors.textMuted}
                     value={tarjetaNumero}
                     onChangeText={handleCambioTarjetaNumero}
