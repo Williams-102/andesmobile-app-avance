@@ -7,3 +7,5 @@ export * from './AdminPanelModal';
 export * from './OfflineBanner';
 export * from './CheckoutModal';
 export * from './BoletaModal';
+export * from './CertificadosModal';
+export * from './AjustesCuentaModal';

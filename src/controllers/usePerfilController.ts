@@ -10,13 +10,17 @@ import { Boleta } from '../types/boleta';
 
 export function usePerfilController() {
   const router = useRouter();
-  const { usuario, estaAutenticado, cargando, logout } = useAuth();
+  const { usuario, estaAutenticado, cargando, logout, actualizarPerfil } = useAuth();
   const { showConfirm, showToast } = useNotification();
 
   const [boletas, setBoletas] = useState<Boleta[]>([]);
   const [modalBoletasVisible, setModalBoletasVisible] = useState<boolean>(false);
   const [cargandoBoletas, setCargandoBoletas] = useState<boolean>(false);
   const [boletaSeleccionada, setBoletaSeleccionada] = useState<Boleta | null>(null);
+
+  // Estados de modales de Certificaciones y Ajustes
+  const [modalCertificadosVisible, setModalCertificadosVisible] = useState<boolean>(false);
+  const [modalAjustesVisible, setModalAjustesVisible] = useState<boolean>(false);
 
   const handleCerrarSesion = useCallback(() => {
     showConfirm({
@@ -63,6 +67,34 @@ export function usePerfilController() {
     setModalBoletasVisible(false);
   }, []);
 
+  const handleAbrirCertificados = useCallback(async () => {
+    try {
+      if (boletas.length === 0) {
+        const data = await BoletasService.obtenerBoletas(usuario?.id, usuario?.email);
+        setBoletas(data);
+      }
+    } catch (e) {
+      console.warn('[usePerfilController] Error precargando boletas para certificados:', e);
+    }
+    setModalCertificadosVisible(true);
+  }, [boletas.length, usuario?.id, usuario?.email]);
+
+  const handleCerrarCertificados = useCallback(() => {
+    setModalCertificadosVisible(false);
+  }, []);
+
+  const handleAbrirAjustes = useCallback(() => {
+    setModalAjustesVisible(true);
+  }, []);
+
+  const handleCerrarAjustes = useCallback(() => {
+    setModalAjustesVisible(false);
+  }, []);
+
+  const handlePerfilActualizado = useCallback((nuevoUsuario: any) => {
+    actualizarPerfil(nuevoUsuario);
+  }, [actualizarPerfil]);
+
   const handleLimpiarHistorialBoletas = useCallback(() => {
     showConfirm({
       title: 'Limpiar Historial',
@@ -92,11 +124,18 @@ export function usePerfilController() {
     cargandoBoletas,
     boletaSeleccionada,
     setBoletaSeleccionada,
+    modalCertificadosVisible,
+    modalAjustesVisible,
     handleCerrarSesion,
     handleIrALogin,
     handleIrARegistro,
     handleAbrirBoletas,
     handleCerrarBoletas,
+    handleAbrirCertificados,
+    handleCerrarCertificados,
+    handleAbrirAjustes,
+    handleCerrarAjustes,
+    handlePerfilActualizado,
     handleLimpiarHistorialBoletas,
   };
 }

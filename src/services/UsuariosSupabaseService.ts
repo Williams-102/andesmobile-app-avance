@@ -145,4 +145,55 @@ export const UsuariosSupabaseService = {
     }
     return false;
   },
+
+  /**
+   * Actualiza el perfil de un usuario en Supabase y en disco local
+   */
+  async actualizarPerfil(
+    id: string,
+    cambios: { nombre?: string; cipColegiatura?: string; avatarUrl?: string }
+  ): Promise<{ exito: boolean; mensaje: string; usuario?: Usuario }> {
+    try {
+      const payload: any = { actualizado_en: new Date().toISOString() };
+      if (cambios.nombre !== undefined) payload.nombre = cambios.nombre.trim();
+      if (cambios.cipColegiatura !== undefined) payload.cip_colegiatura = cambios.cipColegiatura.trim() || null;
+      if (cambios.avatarUrl !== undefined) payload.avatar_url = cambios.avatarUrl;
+
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase
+          .from('usuarios')
+          .update(payload)
+          .eq('id', id)
+          .select()
+          .maybeSingle();
+
+        if (error) {
+          console.warn('[UsuariosSupabaseService] Error actualizando perfil en Supabase:', error.message);
+        } else if (data) {
+          const usuarioActualizado = mapUsuarioDBToUsuario(data as UsuarioDB);
+          await StorageService.set(STORAGE_KEYS.AUTH_USER, usuarioActualizado);
+          return { exito: true, mensaje: 'Perfil actualizado con éxito en Supabase', usuario: usuarioActualizado };
+        }
+      }
+
+      // Fallback local en AsyncStorage
+      const guardado = await StorageService.get<Usuario | null>(STORAGE_KEYS.AUTH_USER, null);
+      if (guardado) {
+        const usuarioLocal: Usuario = {
+          ...guardado,
+          nombre: cambios.nombre !== undefined ? cambios.nombre.trim() : guardado.nombre,
+          cipColegiatura: cambios.cipColegiatura !== undefined ? cambios.cipColegiatura.trim() : guardado.cipColegiatura,
+          avatarUrl: cambios.avatarUrl !== undefined ? cambios.avatarUrl : guardado.avatarUrl,
+        };
+        await StorageService.set(STORAGE_KEYS.AUTH_USER, usuarioLocal);
+        return { exito: true, mensaje: 'Perfil actualizado localmente', usuario: usuarioLocal };
+      }
+
+      return { exito: true, mensaje: 'Perfil actualizado' };
+    } catch (err: any) {
+      console.error('[UsuariosSupabaseService] Excepcion actualizando perfil:', err);
+      return { exito: false, mensaje: err?.message || 'Error al actualizar perfil' };
+    }
+  },
 };
+

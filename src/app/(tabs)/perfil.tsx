@@ -10,6 +10,7 @@ import { useNotification } from '@/context/NotificationContext';
 import { perfilStyles } from '@/styles/perfil.styles';
 import { AdminPanelModal } from '@/components/AdminPanelModal';
 import { BoletaModal } from '@/components/BoletaModal';
+import { CertificadosModal, AjustesCuentaModal } from '@/components';
 
 export default function PerfilScreen() {
   const [modalAdminVisible, setModalAdminVisible] = React.useState(false);
@@ -23,11 +24,18 @@ export default function PerfilScreen() {
     cargandoBoletas,
     boletaSeleccionada,
     setBoletaSeleccionada,
+    modalCertificadosVisible,
+    modalAjustesVisible,
     handleCerrarSesion,
     handleIrALogin,
     handleIrARegistro,
     handleAbrirBoletas,
     handleCerrarBoletas,
+    handleAbrirCertificados,
+    handleCerrarCertificados,
+    handleAbrirAjustes,
+    handleCerrarAjustes,
+    handlePerfilActualizado,
     handleLimpiarHistorialBoletas,
   } = usePerfilController();
 
@@ -130,13 +138,7 @@ export default function PerfilScreen() {
 
         <TouchableOpacity
           style={perfilStyles.opcionFila}
-          onPress={() =>
-            showToast({
-              type: 'info',
-              title: 'Certificaciones',
-              message: 'Tus certificados con firma digital CIP se cargarán aquí.',
-            })
-          }
+          onPress={handleAbrirCertificados}
         >
           <Ionicons name="ribbon-outline" size={20} color="#38BDF8" />
           <Text style={perfilStyles.opcionTexto}>Mis Certificaciones</Text>
@@ -156,13 +158,7 @@ export default function PerfilScreen() {
 
         <TouchableOpacity
           style={perfilStyles.opcionFila}
-          onPress={() =>
-            showToast({
-              type: 'info',
-              title: 'Ajustes',
-              message: 'Preferencias de cuenta y notificaciones.',
-            })
-          }
+          onPress={handleAbrirAjustes}
         >
           <Ionicons name="settings-outline" size={20} color="#38BDF8" />
           <Text style={perfilStyles.opcionTexto}>Ajustes de Cuenta</Text>
@@ -351,6 +347,22 @@ export default function PerfilScreen() {
         visible={!!boletaSeleccionada}
         boleta={boletaSeleccionada}
         onCerrar={() => setBoletaSeleccionada(null)}
+      />
+
+      {/* Modal de Certificaciones Oficiales CIP */}
+      <CertificadosModal
+        visible={modalCertificadosVisible}
+        onClose={handleCerrarCertificados}
+        usuario={usuario}
+        boletas={boletas}
+      />
+
+      {/* Modal de Ajustes de Cuenta y Perfil */}
+      <AjustesCuentaModal
+        visible={modalAjustesVisible}
+        onClose={handleCerrarAjustes}
+        usuario={usuario}
+        onPerfilActualizado={handlePerfilActualizado}
       />
     </View>
   );
