@@ -136,12 +136,26 @@ export const checkoutStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  qrWrapperPlin: {
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: '#0284C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   qrImage: {
     width: 190,
     height: 190,
     borderRadius: 8,
   },
   qrImageYape: {
+    width: 210,
+    height: 210,
+    borderRadius: 10,
+  },
+  qrImagePlin: {
     width: 210,
     height: 210,
     borderRadius: 10,

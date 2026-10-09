@@ -142,6 +142,43 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   };
 
+  // Subir imagen del QR oficial emitido por Plin (BBVA / Interbank / Scotiabank)
+  const handleSeleccionarQrOficialPlin = async () => {
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.9,
+        base64: true,
+      });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        const localUri = res.assets[0].uri;
+        const b64 = res.assets[0].base64;
+        setEditPlinQrImagen(localUri);
+
+        const subida = await VouchersSupabaseService.subirComprobante(
+          localUri,
+          'qr_plin_oficial',
+          b64 || undefined
+        );
+        if (subida.exito && subida.url) {
+          setEditPlinQrImagen(subida.url);
+        }
+        showToast({
+          type: 'success',
+          title: 'QR Oficial Asignado',
+          message: 'Tu imagen oficial de QR de Plin fue cargada con exito.',
+        });
+      }
+    } catch (err) {
+      showToast({
+        type: 'error',
+        title: 'Error de Imagen',
+        message: 'No se pudo cargar la imagen del QR de Plin.',
+      });
+    }
+  };
+
   // Guardar configuracion de cuentas personalizada
   const handleGuardarConfigCuentas = async () => {
     const nueva: ConfiguracionCuentasPago = {
@@ -753,6 +790,35 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   />
                 </View>
 
+                {/* Subir foto de QR Oficial de Plin */}
+                <View style={checkoutStyles.configSeccionGrupo}>
+                  <Text style={checkoutStyles.configLabel}>Imagen de tu QR Oficial de Plin (BBVA/Interbank):</Text>
+                  {editPlinQrImagen ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                      <Image source={{ uri: editPlinQrImagen }} style={{ width: 44, height: 44, borderRadius: 6 }} />
+                      <Text style={{ fontSize: 11, color: '#10B981', fontWeight: '600', flex: 1 }}>
+                        QR Oficial personalizado de Plin asignado
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => setEditPlinQrImagen(undefined)}
+                        style={{ padding: 6 }}
+                      >
+                        <Ionicons name="trash-outline" size={16} color={Colors.danger} />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={[checkoutStyles.botonConfigCuentas, { marginTop: 4, marginBottom: 0 }]}
+                      onPress={handleSeleccionarQrOficialPlin}
+                    >
+                      <Ionicons name="image-outline" size={14} color={Colors.primary} />
+                      <Text style={checkoutStyles.botonConfigCuentasTexto}>
+                        Cargar Foto de mi QR de Plin (Galeria)
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
                 <View style={checkoutStyles.configSeccionGrupo}>
                   <Text style={checkoutStyles.configLabel}>Cuenta Corriente / Tarjeta de Abono:</Text>
                   <TextInput
@@ -920,6 +986,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     style={[
                       checkoutStyles.qrWrapper,
                       metodo === 'yape' && checkoutStyles.qrWrapperYape,
+                      metodo === 'plin' && checkoutStyles.qrWrapperPlin,
                     ]}
                   >
                     {metodo === 'yape' ? (
@@ -931,7 +998,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     ) : (
                       <Image
                         source={{ uri: qrUrl }}
-                        style={checkoutStyles.qrImage}
+                        style={checkoutStyles.qrImagePlin}
                         resizeMode="contain"
                       />
                     )}
