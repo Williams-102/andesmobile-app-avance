@@ -1,5 +1,5 @@
 // src/controllers/usePerfilController.ts
-// Controlador de lógica de negocio y autenticación para la pantalla de Perfil (Módulos 05 y 06)
+// Controlador de logica de negocio y autenticacion para la pantalla de Perfil (Modulos 05 al 09)
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'expo-router';
@@ -16,11 +16,12 @@ export function usePerfilController() {
   const [boletas, setBoletas] = useState<Boleta[]>([]);
   const [modalBoletasVisible, setModalBoletasVisible] = useState<boolean>(false);
   const [cargandoBoletas, setCargandoBoletas] = useState<boolean>(false);
+  const [boletaSeleccionada, setBoletaSeleccionada] = useState<Boleta | null>(null);
 
   const handleCerrarSesion = useCallback(() => {
     showConfirm({
-      title: 'Cerrar Sesión',
-      message: '¿Estás seguro de que deseas salir de tu cuenta de Code Andes?',
+      title: 'Cerrar Sesion',
+      message: '¿Estas seguro de que deseas salir de tu cuenta de Code Andes?',
       confirmText: 'Salir',
       cancelText: 'Cancelar',
       type: 'danger',
@@ -29,7 +30,7 @@ export function usePerfilController() {
         logout();
         showToast({
           type: 'info',
-          title: 'Sesión Finalizada',
+          title: 'Sesion Finalizada',
           message: 'Has salido de tu cuenta correctamente.',
         });
         router.replace('/(auth)/login');
@@ -69,6 +70,8 @@ export function usePerfilController() {
     boletas,
     modalBoletasVisible,
     cargandoBoletas,
+    boletaSeleccionada,
+    setBoletaSeleccionada,
     handleCerrarSesion,
     handleIrALogin,
     handleIrARegistro,

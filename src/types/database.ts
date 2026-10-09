@@ -1,5 +1,5 @@
 // src/types/database.ts
-// Interfaces TypeScript espejo de las tablas de PostgreSQL en Supabase (Módulo 07)
+// Interfaces TypeScript espejo de las tablas de PostgreSQL en Supabase (Modulos 07, 08 y 09)
 
 export interface UsuarioDB {
   id: string; // UUID
@@ -34,7 +34,11 @@ export interface MatriculaDB {
   total: number;
   subtotal: number;
   igv: number;
-  metodo_pago: string;
+  metodo_pago: string; // 'Yape' | 'Plin' | 'Tarjeta' | string
+  numero_operacion?: string | null;
+  voucher_url?: string | null;
+  banco_origen?: string | null;
+  ultimos_digitos_tarjeta?: string | null;
   estado: 'pendiente' | 'completado' | 'cancelado';
   ticket_offline_id?: string;
   fecha?: string;

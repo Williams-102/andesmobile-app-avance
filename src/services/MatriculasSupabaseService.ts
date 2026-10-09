@@ -1,19 +1,19 @@
 // src/services/MatriculasSupabaseService.ts
-// Servicio para registrar matrículas y pedidos en las tablas relacionales de PostgreSQL en Supabase
+// Servicio para registrar matriculas y pedidos en las tablas relacionales de PostgreSQL en Supabase (Modulos 07, 08 y 09)
 
 import { supabase, isSupabaseConfigured } from './supabase';
 import { MatriculaDB, MatriculaItemDB } from '../types/database';
 
 export const MatriculasSupabaseService = {
   /**
-   * Inserta una matrícula con sus ítems en Supabase
+   * Inserta una matricula con sus items en Supabase
    */
   async crearMatricula(
     matricula: Omit<MatriculaDB, 'fecha'>,
     items: Omit<MatriculaItemDB, 'id' | 'matricula_id'>[]
   ): Promise<{ exito: boolean; mensaje: string }> {
     if (!isSupabaseConfigured) {
-      console.log(`[MatriculasSupabase] Supabase no configurado aún con credenciales reales. Simulando éxito local.`);
+      console.log('[MatriculasSupabase] Supabase no configurado con credenciales reales. Simulando exito local.');
       return { exito: true, mensaje: 'Modo local sin credenciales configuradas' };
     }
 
@@ -28,7 +28,7 @@ export const MatriculasSupabaseService = {
         return { exito: false, mensaje: errMatricula.message };
       }
 
-      // 2. Insertar los ítems en 'matricula_items'
+      // 2. Insertar los items en 'matricula_items'
       if (items.length > 0) {
         const itemsPayload = items.map((it) => ({
           matricula_id: matricula.id,
@@ -46,11 +46,33 @@ export const MatriculasSupabaseService = {
         }
       }
 
-      console.log(`[MatriculasSupabase] Matrícula ${matricula.id} guardada con éxito en PostgreSQL.`);
-      return { exito: true, mensaje: 'Matrícula registrada exitosamente en Supabase' };
+      console.log(`[MatriculasSupabase] Matricula ${matricula.id} guardada con exito en PostgreSQL.`);
+      return { exito: true, mensaje: 'Matricula registrada exitosamente en Supabase' };
     } catch (err: any) {
       console.error('[MatriculasSupabase] Error inesperado:', err);
-      return { exito: false, mensaje: err?.message || 'Error de conexión con Supabase' };
+      return { exito: false, mensaje: err?.message || 'Error de conexion con Supabase' };
+    }
+  },
+
+  /**
+   * Obtiene las matriculas registradas por un usuario especifico
+   */
+  async obtenerMatriculasPorUsuario(usuarioId: string): Promise<MatriculaDB[]> {
+    if (!isSupabaseConfigured) return [];
+    try {
+      const { data, error } = await supabase
+        .from('matriculas')
+        .select('*')
+        .eq('usuario_id', usuarioId)
+        .order('fecha', { ascending: false });
+
+      if (error) {
+        console.warn('[MatriculasSupabase] Error consultando matriculas:', error.message);
+        return [];
+      }
+      return data || [];
+    } catch (e) {
+      return [];
     }
   },
 };

@@ -1,5 +1,5 @@
 // src/app/(tabs)/carrito.tsx
-// Pestaña Carrito de Compras conectado a useCarritoController y carritoStyles (Clean Architecture)
+// Pestana Carrito de Compras conectado a useCarritoController, CheckoutModal y BoletaModal (Modulos 05 al 09)
 
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
@@ -7,10 +7,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useCarritoController } from '@/controllers/useCarritoController';
 import { carritoStyles } from '@/styles/carrito.styles';
+import { CheckoutModal, BoletaModal } from '@/components';
 
 export default function CarritoScreen() {
   const {
     items,
+    itemsBoleta,
     total,
     subtotal,
     igv,
@@ -18,22 +20,29 @@ export default function CarritoScreen() {
     handleVaciarCarrito,
     handlePagar,
     handleIrAlCatalogo,
+    isOffline,
+    isCheckoutVisible,
+    handleCerrarCheckout,
+    handlePagoCompletado,
+    boletaEmitida,
+    isBoletaVisible,
+    handleCerrarBoleta,
   } = useCarritoController();
 
-  // Estado visual cuando el carrito está vacío
-  if (items.length === 0) {
+  // Estado visual cuando el carrito esta vacio y no hay boleta recien emitida en pantalla
+  if (items.length === 0 && !isBoletaVisible) {
     return (
       <View style={carritoStyles.vacioContainer}>
         <Ionicons name="cart-outline" size={72} color={Colors.textMuted} />
-        <Text style={carritoStyles.tituloVacio}>Tu carrito está vacío</Text>
+        <Text style={carritoStyles.tituloVacio}>Tu carrito esta vacio</Text>
         <Text style={carritoStyles.subtituloVacio}>
-          Aún no has agregado ningún curso a tu lista de matrícula. Explora nuestro catálogo y potencia tus habilidades.
+          Aun no has agregado ningun curso a tu lista de matricula. Explora nuestro catalogo y potencia tus habilidades.
         </Text>
         <TouchableOpacity
           style={carritoStyles.botonExplorar}
           onPress={handleIrAlCatalogo}
         >
-          <Text style={carritoStyles.botonExplorarTexto}>Explorar Catálogo de Cursos →</Text>
+          <Text style={carritoStyles.botonExplorarTexto}>Explorar Catalogo de Cursos</Text>
         </TouchableOpacity>
       </View>
     );
@@ -68,9 +77,9 @@ export default function CarritoScreen() {
           </View>
         ))}
 
-        {/* Tarjeta de Resumen Económico */}
+        {/* Tarjeta de Resumen Economico */}
         <View style={carritoStyles.resumenCard}>
-          <Text style={carritoStyles.resumenTitulo}>Resumen de Inversión</Text>
+          <Text style={carritoStyles.resumenTitulo}>Resumen de Inversion</Text>
           <View style={carritoStyles.resumenFila}>
             <Text style={carritoStyles.resumenLabel}>Subtotal</Text>
             <Text style={carritoStyles.resumenValor}>S/ {subtotal.toFixed(2)}</Text>
@@ -85,12 +94,31 @@ export default function CarritoScreen() {
           </View>
         </View>
 
-        {/* Botón de Checkout */}
+        {/* Boton de Checkout */}
         <TouchableOpacity style={carritoStyles.botonCheckout} onPress={handlePagar}>
           <Ionicons name="wallet-outline" size={22} color="#FFFFFF" style={{ marginRight: 8 }} />
           <Text style={carritoStyles.botonCheckoutTexto}>Pagar con Yape / Plin / Tarjeta</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Modal de Checkout Interactivo (Modulo 09) */}
+      <CheckoutModal
+        visible={isCheckoutVisible}
+        onClose={handleCerrarCheckout}
+        items={itemsBoleta}
+        total={total}
+        subtotal={subtotal}
+        igv={igv}
+        isOffline={isOffline}
+        onPagoCompletado={handlePagoCompletado}
+      />
+
+      {/* Modal de Boleta Electronica Digital con Desglose de IGV (Modulo 09) */}
+      <BoletaModal
+        visible={isBoletaVisible}
+        boleta={boletaEmitida}
+        onCerrar={handleCerrarBoleta}
+      />
     </View>
   );
 }

@@ -9,6 +9,7 @@ import { usePerfilController } from '@/controllers/usePerfilController';
 import { useNotification } from '@/context/NotificationContext';
 import { perfilStyles } from '@/styles/perfil.styles';
 import { AdminPanelModal } from '@/components/AdminPanelModal';
+import { BoletaModal } from '@/components/BoletaModal';
 
 export default function PerfilScreen() {
   const [modalAdminVisible, setModalAdminVisible] = React.useState(false);
@@ -20,6 +21,8 @@ export default function PerfilScreen() {
     boletas,
     modalBoletasVisible,
     cargandoBoletas,
+    boletaSeleccionada,
+    setBoletaSeleccionada,
     handleCerrarSesion,
     handleIrALogin,
     handleIrARegistro,
@@ -224,8 +227,10 @@ export default function PerfilScreen() {
             ) : (
               <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 360 }}>
                 {boletas.map((boleta) => (
-                  <View
+                  <TouchableOpacity
                     key={boleta.id}
+                    onPress={() => setBoletaSeleccionada(boleta)}
+                    activeOpacity={0.7}
                     style={{
                       backgroundColor: '#0F172A',
                       borderRadius: 12,
@@ -237,7 +242,7 @@ export default function PerfilScreen() {
                   >
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                       <Text style={{ color: '#38BDF8', fontWeight: '800', fontSize: 13, fontFamily: 'monospace' }}>
-                        {boleta.id}
+                        {boleta.serie || boleta.id}
                       </Text>
                       <View
                         style={{
@@ -297,12 +302,17 @@ export default function PerfilScreen() {
                       </Text>
                     </View>
 
+                    <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 6, gap: 4 }}>
+                      <Text style={{ color: '#38BDF8', fontSize: 11, fontWeight: '600' }}>Ver Boleta Digital</Text>
+                      <Ionicons name="receipt-outline" size={13} color="#38BDF8" />
+                    </View>
+
                     {boleta.ticketOfflineId && (
                       <Text style={{ color: '#64748B', fontSize: 9, marginTop: 4, fontStyle: 'italic' }}>
                         Ticket origen: {boleta.ticketOfflineId}
                       </Text>
                     )}
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </ScrollView>
             )}
@@ -322,8 +332,13 @@ export default function PerfilScreen() {
         visible={modalAdminVisible}
         onClose={() => setModalAdminVisible(false)}
       />
+
+      {/* Modal de Boleta Electrónica Digital Seleccionada (Módulo 09) */}
+      <BoletaModal
+        visible={!!boletaSeleccionada}
+        boleta={boletaSeleccionada}
+        onCerrar={() => setBoletaSeleccionada(null)}
+      />
     </View>
-
-
   );
 }
