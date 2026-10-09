@@ -22,11 +22,11 @@ export interface ConfiguracionCuentasPago {
 }
 
 export const CONFIGURACION_PAGO_POR_DEFECTO: ConfiguracionCuentasPago = {
-  yapeNumero: '916 694 173',
-  yapeTitular: 'Exar Williams Atao Paucar',
+  yapeNumero: '987 654 321',
+  yapeTitular: 'test',
   yapeBanco: 'Banco de Credito del Peru (BCP)',
-  plinNumero: '916 694 173',
-  plinTitular: 'Code Andes Academy S.A.C.',
+  plinNumero: '987 654 321',
+  plinTitular: 'test',
   plinBanco: 'BBVA / Interbank',
   tarjetaCuentaDestino: '193-9821049-0-44',
   tarjetaTitularDestino: 'Code Andes Academy S.A.C.',
