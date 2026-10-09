@@ -126,12 +126,56 @@ ON CONFLICT (id) DO UPDATE SET
   descripcion = EXCLUDED.descripcion;
 
 -- ----------------------------------------------------------------------------
--- 7. ROW LEVEL SECURITY (RLS) — AJUSTE DIDACTICO PARA EL AULA
+-- 7. ROW LEVEL SECURITY (RLS) Y POLITICAS DE ACCESO
 -- ----------------------------------------------------------------------------
-ALTER TABLE public.cursos DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.usuarios DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.matriculas DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.matricula_items DISABLE ROW LEVEL SECURITY;
+-- Habilitar RLS en todas las tablas publicas
+ALTER TABLE public.cursos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.matriculas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.matricula_items ENABLE ROW LEVEL SECURITY;
+
+-- Limpieza preventiva de politicas previas para evitar duplicados o conflictos
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (
+        SELECT policyname, tablename
+        FROM pg_policies
+        WHERE schemaname = 'public'
+          AND tablename IN ('cursos', 'usuarios', 'matriculas', 'matricula_items')
+    ) LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', r.policyname, r.tablename);
+    END LOOP;
+END $$;
+
+-- Politica unificada para catalogo de cursos (lectura y administracion en clase)
+CREATE POLICY "Permitir acceso completo cursos"
+ON public.cursos FOR ALL
+TO anon, authenticated
+USING (true)
+WITH CHECK (true);
+
+-- Politica unificada para usuarios y perfiles
+CREATE POLICY "Permitir acceso completo usuarios"
+ON public.usuarios FOR ALL
+TO anon, authenticated
+USING (true)
+WITH CHECK (true);
+
+-- Politica unificada para matriculas (registro de compras y emision de boletas)
+CREATE POLICY "Permitir acceso completo matriculas"
+ON public.matriculas FOR ALL
+TO anon, authenticated
+USING (true)
+WITH CHECK (true);
+
+-- Politica unificada para items de matricula
+CREATE POLICY "Permitir acceso completo matricula_items"
+ON public.matricula_items FOR ALL
+TO anon, authenticated
+USING (true)
+WITH CHECK (true);
 
 -- ----------------------------------------------------------------------------
 -- 8. USUARIOS DEMO PARA PRUEBAS EN CLASE
@@ -251,7 +295,7 @@ BEGIN
     rol    = COALESCE(EXCLUDED.rol,    public.usuarios.rol);
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
