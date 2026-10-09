@@ -144,21 +144,8 @@ DROP POLICY IF EXISTS "Permitir ver items" ON public.matricula_items;
 CREATE POLICY "Permitir ver items"
 ON public.matricula_items FOR SELECT USING (TRUE);
 
--- ── USUARIOS ─────────────────────────────────────────────────────────────────
-ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Lectura publica usuarios" ON public.usuarios;
-CREATE POLICY "Lectura publica usuarios"
-ON public.usuarios FOR SELECT USING (TRUE);
-
-DROP POLICY IF EXISTS "Permitir crear usuarios" ON public.usuarios;
-CREATE POLICY "Permitir crear usuarios"
-ON public.usuarios FOR INSERT WITH CHECK (TRUE);
-
-DROP POLICY IF EXISTS "Permitir actualizar usuarios" ON public.usuarios;
-CREATE POLICY "Permitir actualizar usuarios"
-ON public.usuarios FOR UPDATE
-USING (TRUE) WITH CHECK (TRUE);
+-- ── USUARIOS: desactivar RLS para permitir registro, perfil y login sin bloqueos ──
+ALTER TABLE public.usuarios DISABLE ROW LEVEL SECURITY;
 
 -- ----------------------------------------------------------------------------
 -- 8. USUARIOS DEMO PARA PRUEBAS EN CLASE
