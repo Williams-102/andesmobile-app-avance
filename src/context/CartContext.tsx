@@ -23,12 +23,12 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     let isMounted = true;
     const cargarCarrito = async () => {
       try {
-        const guardados = await StorageService.get<ItemCarrito[]>(STORAGE_KEYS.CART_ITEMS, []);
+        const guardados = await StorageService.get<ItemCarrito[] | null>(STORAGE_KEYS.CART_ITEMS, null);
         if (isMounted) {
-          if (guardados && guardados.length > 0) {
+          if (guardados !== null && Array.isArray(guardados)) {
             setItems(guardados);
           } else {
-            // Producto demo inicial para que el alumno explore de inmediato
+            // Producto demo inicial para que el alumno explore de inmediato unicamente en la primera ejecucion
             const demoItem: ItemCarrito = {
               id: '1',
               titulo: 'Desarrollo de Apps Móviles con React Native & Expo',

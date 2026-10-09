@@ -257,3 +257,8 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.manejar_nuevo_usuario_auth();
+
+-- ----------------------------------------------------------------------------
+-- 11. RECARGA DE CACHE DE ESQUEMA POSTGREST (EVITA ERROR PGRST204)
+-- ----------------------------------------------------------------------------
+NOTIFY pgrst, 'reload schema';
