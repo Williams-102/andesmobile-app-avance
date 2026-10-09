@@ -56,6 +56,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   // Estados para Yape y Plin
   const [voucherUri, setVoucherUri] = useState<string | null>(null);
+  const [voucherBase64, setVoucherBase64] = useState<string | null>(null);
   const [numeroOperacion, setNumeroOperacion] = useState<string>('');
 
   // Estados para Tarjeta Bancaria
@@ -138,10 +139,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         mediaTypes: ['images'],
         allowsEditing: true,
         quality: 0.8,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setVoucherUri(result.assets[0].uri);
+        setVoucherBase64(result.assets[0].base64 || null);
         showToast({
           type: 'success',
           title: 'Comprobante Adjuntado',
@@ -173,10 +176,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         quality: 0.8,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setVoucherUri(result.assets[0].uri);
+        setVoucherBase64(result.assets[0].base64 || null);
         showToast({
           type: 'success',
           title: 'Foto Capturada',
@@ -196,6 +201,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const handleRellenarVoucherDemo = () => {
     const demoOp = String(Math.floor(100000 + Math.random() * 900000));
     setVoucherUri('https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=600');
+    setVoucherBase64(null);
     setNumeroOperacion(demoOp);
     showToast({
       type: 'info',
@@ -301,7 +307,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
       // Subir voucher a Supabase Storage si es Yape o Plin
       if ((metodo === 'yape' || metodo === 'plin') && voucherUri) {
-        const subida = await VouchersSupabaseService.subirComprobante(voucherUri, metodo);
+        const subida = await VouchersSupabaseService.subirComprobante(
+          voucherUri,
+          metodo,
+          voucherBase64 || undefined
+        );
         urlVoucherFinal = subida.url;
       }
 

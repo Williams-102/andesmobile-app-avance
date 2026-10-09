@@ -74,17 +74,20 @@ export const AjustesCuentaModal: React.FC<AjustesCuentaModalProps> = ({
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const localUri = result.assets[0].uri;
+        const localBase64 = result.assets[0].base64;
         setAvatarUrl(localUri);
 
         // Subir a Supabase Storage si esta disponible
         setSubiendoFoto(true);
         const subida = await StorageServiceSupabase.subirImagenCurso(
           localUri,
-          `avatar_${usuario?.id || 'usr'}_${Date.now()}.jpg`
+          `avatar_${usuario?.id || 'usr'}_${Date.now()}.jpg`,
+          localBase64 || undefined
         );
         setSubiendoFoto(false);
 

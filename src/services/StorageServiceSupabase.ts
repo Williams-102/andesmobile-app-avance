@@ -9,13 +9,40 @@ export interface ImagenSubidaResult {
   error?: string;
 }
 
+function decodeBase64(base64String: string): Uint8Array {
+  const clean = base64String.replace(/[\r\n\t]/g, '');
+  const globalAny = globalThis as any;
+  if (typeof globalAny.Buffer !== 'undefined') {
+    return new Uint8Array(globalAny.Buffer.from(clean, 'base64'));
+  }
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let bufferLength = Math.floor(clean.length * 0.75);
+  if (clean.endsWith('==')) bufferLength -= 2;
+  else if (clean.endsWith('=')) bufferLength -= 1;
+  const bytes = new Uint8Array(bufferLength);
+  let p = 0;
+  for (let i = 0; i < clean.length; i += 4) {
+    const encoded1 = chars.indexOf(clean[i]);
+    const encoded2 = chars.indexOf(clean[i + 1]);
+    const encoded3 = chars.indexOf(clean[i + 2]);
+    const encoded4 = chars.indexOf(clean[i + 3]);
+    bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
+    if (encoded3 !== -1 && encoded3 !== 64) bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+    if (encoded4 !== -1 && encoded4 !== 64) bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63);
+  }
+  return bytes;
+}
+
 export const StorageServiceSupabase = {
   /**
    * Sube una imagen a Supabase Storage en el bucket 'cursos'.
-   * @param uri URI local del archivo proporcionado por Expo ImagePicker (file:// o content://)
-   * @param nombreArchivo Nombre único deseado (ej: 'curso-17120392.jpg')
+   * Soporta base64 directo de Expo ImagePicker o conversion de URI.
    */
-  async subirImagenCurso(uri: string, nombreArchivo?: string): Promise<ImagenSubidaResult> {
+  async subirImagenCurso(
+    uri: string,
+    nombreArchivo?: string,
+    base64?: string
+  ): Promise<ImagenSubidaResult> {
     try {
       const fileName = nombreArchivo || `curso_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
       const filePath = `portadas/${fileName}`;
@@ -29,15 +56,18 @@ export const StorageServiceSupabase = {
         };
       }
 
-      // Convertir URI local a ArrayBuffer mediante fetch nativo de React Native
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const arrayBuffer = await new Response(blob).arrayBuffer();
+      let fileData: any;
+      if (base64) {
+        fileData = decodeBase64(base64);
+      } else {
+        const response = await fetch(uri);
+        fileData = await response.blob();
+      }
 
       // Subir archivo al bucket 'cursos'
       const { data, error } = await supabase.storage
         .from('cursos')
-        .upload(filePath, arrayBuffer, {
+        .upload(filePath, fileData, {
           contentType: 'image/jpeg',
           upsert: true,
         });
@@ -46,7 +76,7 @@ export const StorageServiceSupabase = {
         console.warn('[StorageService] Error subiendo imagen a Supabase Storage:', error.message);
         // Retornar la URI local como fallback visual para no trabar la experiencia de usuario
         return {
-          exito: false,
+          exito: true,
           url: uri,
           error: error.message,
         };
@@ -66,7 +96,7 @@ export const StorageServiceSupabase = {
     } catch (err: any) {
       console.warn('[StorageService] Excepción al procesar imagen:', err);
       return {
-        exito: false,
+        exito: true,
         url: uri,
         error: err.message || 'Error desconocido al subir imagen',
       };

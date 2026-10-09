@@ -90,15 +90,21 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
         allowsEditing: true,
         aspect: [16, 9],
         quality: 0.8,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const localUri = result.assets[0].uri;
+        const localBase64 = result.assets[0].base64;
         setImagenUrl(localUri);
 
         // Subir a Supabase Storage
         setSubiendoImagen(true);
-        const resSubida = await StorageServiceSupabase.subirImagenCurso(localUri);
+        const resSubida = await StorageServiceSupabase.subirImagenCurso(
+          localUri,
+          `curso_${Date.now()}.jpg`,
+          localBase64 || undefined
+        );
         setSubiendoImagen(false);
 
         if (resSubida.exito && resSubida.url) {
@@ -138,14 +144,20 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
         allowsEditing: true,
         aspect: [16, 9],
         quality: 0.8,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const localUri = result.assets[0].uri;
+        const localBase64 = result.assets[0].base64;
         setImagenUrl(localUri);
 
         setSubiendoImagen(true);
-        const resSubida = await StorageServiceSupabase.subirImagenCurso(localUri);
+        const resSubida = await StorageServiceSupabase.subirImagenCurso(
+          localUri,
+          `curso_cam_${Date.now()}.jpg`,
+          localBase64 || undefined
+        );
         setSubiendoImagen(false);
 
         if (resSubida.exito && resSubida.url) {
