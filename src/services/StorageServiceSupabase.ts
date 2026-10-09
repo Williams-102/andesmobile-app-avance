@@ -22,7 +22,7 @@ export const StorageServiceSupabase = {
 
       // Si Supabase no está configurado, usamos la URI local como fallback para pruebas
       if (!isSupabaseConfigured) {
-        console.log('[StorageService] ⚠️ Supabase no configurado, usando URI local directa:', uri);
+        console.log('[StorageService] Supabase no configurado, usando URI local directa:', uri);
         return {
           exito: true,
           url: uri,
@@ -43,7 +43,7 @@ export const StorageServiceSupabase = {
         });
 
       if (error) {
-        console.warn('[StorageService] ⚠️ Error subiendo imagen a Supabase Storage:', error.message);
+        console.warn('[StorageService] Error subiendo imagen a Supabase Storage:', error.message);
         // Retornar la URI local como fallback visual para no trabar la experiencia de usuario
         return {
           exito: false,
@@ -57,14 +57,14 @@ export const StorageServiceSupabase = {
         .from('cursos')
         .getPublicUrl(filePath);
 
-      console.log('[StorageService] 📸 Imagen subida con éxito a Supabase Storage:', publicUrlData.publicUrl);
+      console.log('[StorageService] Imagen subida con éxito a Supabase Storage:', publicUrlData.publicUrl);
 
       return {
         exito: true,
         url: publicUrlData.publicUrl,
       };
     } catch (err: any) {
-      console.warn('[StorageService] ⚠️ Excepción al procesar imagen:', err);
+      console.warn('[StorageService] Excepción al procesar imagen:', err);
       return {
         exito: false,
         url: uri,

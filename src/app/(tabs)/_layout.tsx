@@ -9,10 +9,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart } from '../../context/CartContext';
 
 export default function TabsLayout() {
-  // 🛒 Consumo del estado global para actualizar el badge en tiempo real
+  // Consumo del estado global para actualizar el badge en tiempo real
   const { cantidadTotal } = useCart();
   
-  // 🛡️ Safe Area Insets para evitar que los botones del sistema Android (cuadrado, círculo, triángulo) tapen la barra
+  // Safe Area Insets para evitar que los botones del sistema Android tapen la barra
   const insets = useSafeAreaInsets();
 
   const extraBottomPadding = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'android' ? 8 : 0);

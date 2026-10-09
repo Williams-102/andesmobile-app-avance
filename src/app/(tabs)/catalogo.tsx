@@ -52,12 +52,17 @@ export default function CatalogScreen() {
         </View>
 
         <TouchableOpacity
-          style={styles.themeToggle}
+          style={[styles.themeToggle, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}
           onPress={toggleTheme}
           activeOpacity={0.8}
         >
+          <Ionicons
+            name={isDarkMode ? 'sunny-outline' : 'moon-outline'}
+            size={16}
+            color={isDarkMode ? '#F59E0B' : '#38BDF8'}
+          />
           <Text style={styles.themeToggleText}>
-            {isDarkMode ? '☀️ Claro' : '🌙 Oscuro'}
+            {isDarkMode ? 'Claro' : 'Oscuro'}
           </Text>
         </TouchableOpacity>
       </View>

@@ -65,7 +65,7 @@ export const SyncEngine = {
             ticketOfflineId: ticket.id,
           });
 
-          // ☁️ MÓDULO 07: Inserción permanente en PostgreSQL de Supabase
+          // Inserción permanente en PostgreSQL de Supabase
           const totalNum = ticket.payload.total || 0;
           const subtotalNum = totalNum / 1.18;
           const igvNum = totalNum - subtotalNum;

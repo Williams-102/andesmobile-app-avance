@@ -62,7 +62,7 @@ export const CursosSupabaseService = {
         if (!error && data && data.length > 0) {
           const cursosMapeados = (data as CursoDB[]).map(mapCursoDBToCurso);
           await StorageService.set(STORAGE_KEYS.CACHE_CURSOS, cursosMapeados);
-          console.log(`[CursosSupabaseService] ☁️ ${cursosMapeados.length} cursos cargados en vivo desde PostgreSQL en Supabase.`);
+          console.log(`[CursosSupabaseService] ${cursosMapeados.length} cursos cargados en vivo desde PostgreSQL en Supabase.`);
           return cursosMapeados;
         }
 
@@ -77,7 +77,7 @@ export const CursosSupabaseService = {
     // Fallback 1: Leer de la caché local persistente en disco (Módulo 06)
     const cacheLocal = await StorageService.get<Curso[]>(STORAGE_KEYS.CACHE_CURSOS, []);
     if (cacheLocal && cacheLocal.length > 0) {
-      console.log(`[CursosSupabaseService] 📦 ${cacheLocal.length} cursos cargados desde caché local AsyncStorage.`);
+      console.log(`[CursosSupabaseService] ${cacheLocal.length} cursos cargados desde caché local AsyncStorage.`);
       return cacheLocal;
     }
 
@@ -124,7 +124,7 @@ export const CursosSupabaseService = {
       const cursosActuales = await StorageService.get<Curso[]>(STORAGE_KEYS.CACHE_CURSOS, []);
       await StorageService.set(STORAGE_KEYS.CACHE_CURSOS, [cursoCreado, ...cursosActuales]);
 
-      console.log(`[CursosSupabaseService] ☁️ Curso "${cursoCreado.titulo}" insertado con éxito en PostgreSQL.`);
+      console.log(`[CursosSupabaseService] Curso "${cursoCreado.titulo}" insertado con éxito en PostgreSQL.`);
       return { exito: true, mensaje: 'Curso creado con éxito en Supabase Cloud', curso: cursoCreado };
     } catch (err: any) {
       return { exito: false, mensaje: err?.message || 'Error de conexión al crear curso' };
@@ -166,7 +166,7 @@ export const CursosSupabaseService = {
       );
       await StorageService.set(STORAGE_KEYS.CACHE_CURSOS, actualizados);
 
-      console.log(`[CursosSupabaseService] ☁️ Precio del curso #${id} actualizado a S/ ${nuevoPrecio.toFixed(2)}.`);
+      console.log(`[CursosSupabaseService] Precio del curso #${id} actualizado a S/ ${nuevoPrecio.toFixed(2)}.`);
       return { exito: true, mensaje: 'Precio actualizado con éxito en Supabase' };
     } catch (err: any) {
       return { exito: false, mensaje: err?.message || 'Error al actualizar precio' };
@@ -221,7 +221,7 @@ export const CursosSupabaseService = {
       const filtrados = cursos.filter((c) => c.id !== id);
       await StorageService.set(STORAGE_KEYS.CACHE_CURSOS, filtrados);
 
-      console.log(`[CursosSupabaseService] 🗑️ Curso #${id} eliminado/desactivado con éxito.`);
+      console.log(`[CursosSupabaseService] Curso #${id} eliminado/desactivado con éxito.`);
       return { exito: true, mensaje: 'Curso retirado del catálogo con éxito' };
     } catch (err: any) {
       return { exito: false, mensaje: err?.message || 'Error al eliminar curso' };

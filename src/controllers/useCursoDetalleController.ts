@@ -2,9 +2,9 @@
 // Controlador de lógica de negocio para la pantalla de Detalle Dinámico de Curso (Módulos 04, 05 y 07 - Supabase)
 
 import { useState, useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCart } from '../context/CartContext';
+import { useNotification } from '../context/NotificationContext';
 import { CursosSupabaseService } from '../services/CursosSupabaseService';
 import { Curso } from '../types/curso';
 import { CURSOS_MOCK } from '@/constants/cursosData';
@@ -12,6 +12,7 @@ import { CURSOS_MOCK } from '@/constants/cursosData';
 export function useCursoDetalleController() {
   const router = useRouter();
   const { agregarProducto, estaEnCarrito } = useCart();
+  const { showToast } = useNotification();
 
   const params = useLocalSearchParams<{
     id: string;
@@ -54,14 +55,13 @@ export function useCursoDetalleController() {
 
   const handleAgregarAlCarrito = useCallback(() => {
     if (yaEnCarrito) {
-      Alert.alert(
-        'Curso ya en el Carrito',
-        `"${titulo}" ya se encuentra agregado en tu carrito de compras.`,
-        [
-          { text: 'Seguir explorando', style: 'cancel' },
-          { text: 'Ver Carrito 🛒', onPress: () => router.push('/(tabs)/carrito') },
-        ]
-      );
+      showToast({
+        type: 'warning',
+        title: 'Curso en el Carrito',
+        message: `"${titulo}" ya se encuentra agregado en tu carrito de compras.`,
+        actionText: 'Ver Carrito',
+        onAction: () => router.push('/(tabs)/carrito'),
+      });
       return;
     }
 
@@ -76,24 +76,27 @@ export function useCursoDetalleController() {
     });
 
     if (exito) {
-      Alert.alert(
-        '¡Agregado al Carrito! 🛒',
-        `"${titulo}" ha sido agregado exitosamente a tu orden de matrícula.`,
-        [
-          { text: 'Seguir explorando', style: 'cancel' },
-          { text: 'Ir al Carrito 🛒', onPress: () => router.push('/(tabs)/carrito') },
-        ]
-      );
+      showToast({
+        type: 'success',
+        title: 'Agregado al Carrito',
+        message: `"${titulo}" ha sido agregado a tu orden de matrícula.`,
+        actionText: 'Ir al Carrito',
+        onAction: () => router.push('/(tabs)/carrito'),
+      });
     }
-  }, [yaEnCarrito, titulo, id, precio, instructor, cursoEncontrado, agregarProducto, router]);
+  }, [yaEnCarrito, titulo, id, precio, instructor, cursoEncontrado, agregarProducto, router, showToast]);
 
   const handleRegresar = useCallback(() => {
     router.back();
   }, [router]);
 
   const handleCompartir = useCallback(() => {
-    Alert.alert('Compartir', `Enlace oficial de curso #${id}: andesmobile://curso/${id}`);
-  }, [id]);
+    showToast({
+      type: 'info',
+      title: 'Enlace Compartido',
+      message: `Enlace oficial de curso #${id}: andesmobile://curso/${id}`,
+    });
+  }, [id, showToast]);
 
   return {
     id,

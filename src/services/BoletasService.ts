@@ -28,7 +28,7 @@ export const BoletasService = {
     // Añadir al inicio para que las compras más recientes aparezcan arriba
     boletas.unshift(nuevaBoleta);
     await StorageService.set(STORAGE_KEYS.BOLETAS, boletas);
-    console.log(`[BoletasService] 🧾 Boleta ${nuevaBoleta.id} guardada (${nuevaBoleta.estado})`);
+    console.log(`[BoletasService] Boleta ${nuevaBoleta.id} guardada (${nuevaBoleta.estado})`);
     return nuevaBoleta;
   },
 };

@@ -2,15 +2,17 @@
 // Pestaña Perfil de Usuario conectada a usePerfilController y perfilStyles (Clean Architecture)
 
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, Alert, ActivityIndicator, Modal, ScrollView } from 'react-native';
+import { View, Text, Image, TouchableOpacity, ActivityIndicator, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { usePerfilController } from '@/controllers/usePerfilController';
+import { useNotification } from '@/context/NotificationContext';
 import { perfilStyles } from '@/styles/perfil.styles';
 import { AdminPanelModal } from '@/components/AdminPanelModal';
 
 export default function PerfilScreen() {
   const [modalAdminVisible, setModalAdminVisible] = React.useState(false);
+  const { showToast } = useNotification();
   const {
     usuario,
     estaAutenticado,
@@ -78,10 +80,10 @@ export default function PerfilScreen() {
               ]}
             >
               {usuario?.rol === 'admin'
-                ? '👑 ROL: ADMINISTRADOR'
+                ? 'ROL: ADMINISTRADOR'
                 : usuario?.rol === 'docente'
-                ? `👨‍🏫 DOCENTE CIP: ${usuario?.cipColegiatura || 'Colegiado'}`
-                : `🎓 ALUMNO: ${usuario?.cipColegiatura || 'Estudiante'}`}
+                ? `DOCENTE CIP: ${usuario?.cipColegiatura || 'Colegiado'}`
+                : `ALUMNO: ${usuario?.cipColegiatura || 'Estudiante'}`}
             </Text>
           </View>
         )}
@@ -115,7 +117,7 @@ export default function PerfilScreen() {
                 },
               ]}
             >
-              👑 Portal Admin (Subir & Gestionar Cursos)
+              Portal Admin (Subir & Gestionar Cursos)
             </Text>
             <Ionicons name="chevron-forward" size={18} color="#F59E0B" />
           </TouchableOpacity>
@@ -124,7 +126,13 @@ export default function PerfilScreen() {
 
         <TouchableOpacity
           style={perfilStyles.opcionFila}
-          onPress={() => Alert.alert('Certificaciones', 'Tus certificados con firma digital CIP se cargarán aquí.')}
+          onPress={() =>
+            showToast({
+              type: 'info',
+              title: 'Certificaciones',
+              message: 'Tus certificados con firma digital CIP se cargarán aquí.',
+            })
+          }
         >
           <Ionicons name="ribbon-outline" size={20} color="#38BDF8" />
           <Text style={perfilStyles.opcionTexto}>Mis Certificaciones</Text>
@@ -144,7 +152,13 @@ export default function PerfilScreen() {
 
         <TouchableOpacity
           style={perfilStyles.opcionFila}
-          onPress={() => Alert.alert('Ajustes', 'Preferencias de cuenta y notificaciones.')}
+          onPress={() =>
+            showToast({
+              type: 'info',
+              title: 'Ajustes',
+              message: 'Preferencias de cuenta y notificaciones.',
+            })
+          }
         >
           <Ionicons name="settings-outline" size={20} color="#38BDF8" />
           <Text style={perfilStyles.opcionTexto}>Ajustes de Cuenta</Text>
@@ -227,6 +241,9 @@ export default function PerfilScreen() {
                       </Text>
                       <View
                         style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 4,
                           backgroundColor:
                             boleta.estado === 'COMPLETADO_ONLINE'
                               ? 'rgba(16, 185, 129, 0.2)'
@@ -238,6 +255,11 @@ export default function PerfilScreen() {
                           borderColor: boleta.estado === 'COMPLETADO_ONLINE' ? '#10B981' : '#38BDF8',
                         }}
                       >
+                        <Ionicons
+                          name={boleta.estado === 'COMPLETADO_ONLINE' ? 'cloud-done-outline' : 'sync-outline'}
+                          size={11}
+                          color={boleta.estado === 'COMPLETADO_ONLINE' ? '#10B981' : '#38BDF8'}
+                        />
                         <Text
                           style={{
                             color: boleta.estado === 'COMPLETADO_ONLINE' ? '#10B981' : '#38BDF8',
@@ -245,7 +267,7 @@ export default function PerfilScreen() {
                             fontWeight: '700',
                           }}
                         >
-                          {boleta.estado === 'COMPLETADO_ONLINE' ? '✅ Online' : '🌐 Sincronizado'}
+                          {boleta.estado === 'COMPLETADO_ONLINE' ? 'Online' : 'Sincronizado'}
                         </Text>
                       </View>
                     </View>

@@ -3,6 +3,7 @@
 
 import React from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Curso } from '../types/curso';
 import { getTarjetaProductoStyles } from '@/styles/tarjetaProducto.styles';
@@ -43,9 +44,12 @@ export const TarjetaProducto: React.FC<TarjetaProductoProps> = ({
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{curso.nivel}</Text>
           </View>
-          <Text style={styles.ratingText}>
-            ⭐ {curso.rating} · {curso.duracion}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Ionicons name="star" size={12} color="#F59E0B" />
+            <Text style={styles.ratingText}>
+              {curso.rating} · {curso.duracion}
+            </Text>
+          </View>
         </View>
 
         <TouchableOpacity activeOpacity={0.8} onPress={handlePressDetalle}>

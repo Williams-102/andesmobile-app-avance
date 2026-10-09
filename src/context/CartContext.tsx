@@ -139,7 +139,7 @@ export function useCart(): CartContextType {
 
   if (!context) {
     throw new Error(
-      '❌ useCart debe ser utilizado dentro de un <CartProvider>. ' +
+      'useCart debe ser utilizado dentro de un <CartProvider>. ' +
       'Asegúrate de envolver tu app en app/_layout.tsx.'
     );
   }

@@ -1,6 +1,3 @@
-// src/components/AdminPanelModal.tsx
-// Portal de Administración de Cursos y Catálogo (Módulo 07 - CRUD en Tiempo Real con Supabase Cloud)
-
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Modal,
@@ -10,7 +7,6 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
-  Alert,
   Image,
   StyleSheet,
 } from 'react-native';
@@ -18,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { CursosSupabaseService } from '../services/CursosSupabaseService';
 import { StorageServiceSupabase } from '../services/StorageServiceSupabase';
+import { useNotification } from '../context/NotificationContext';
 import { Curso } from '../types/curso';
 
 interface AdminPanelModalProps {
@@ -31,6 +28,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   onClose,
   onCatalogoModificado,
 }) => {
+  const { showToast, showConfirm } = useNotification();
   const [cargando, setCargando] = useState<boolean>(false);
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [mostrarFormNuevo, setMostrarFormNuevo] = useState<boolean>(false);
@@ -79,10 +77,11 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          'Permiso Requerido',
-          'Code Andes necesita acceso a tu galería para adjuntar la foto del curso.'
-        );
+        showToast({
+          type: 'warning',
+          title: 'Permiso Requerido',
+          message: 'Code Andes necesita acceso a tu galería para adjuntar la foto del curso.',
+        });
         return;
       }
 
@@ -104,12 +103,20 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
         if (resSubida.exito && resSubida.url) {
           setImagenUrl(resSubida.url);
-          Alert.alert('📸 Imagen Lista', 'La portada fue cargada con éxito a Supabase Storage.');
+          showToast({
+            type: 'success',
+            title: 'Imagen Lista',
+            message: 'La portada fue cargada con éxito a Supabase Storage.',
+          });
         }
       }
     } catch (err: any) {
       console.warn('[AdminPanel] Error al abrir galería:', err);
-      Alert.alert('Aviso', 'No se pudo abrir la galería de imágenes.');
+      showToast({
+        type: 'error',
+        title: 'Aviso',
+        message: 'No se pudo abrir la galería de imágenes.',
+      });
     } finally {
       setSubiendoImagen(false);
     }
@@ -119,10 +126,11 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          'Permiso Requerido',
-          'Code Andes necesita acceso a la cámara para fotografiar el material del curso.'
-        );
+        showToast({
+          type: 'warning',
+          title: 'Permiso Requerido',
+          message: 'Code Andes necesita acceso a la cámara para fotografiar el material del curso.',
+        });
         return;
       }
 
@@ -142,12 +150,20 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
         if (resSubida.exito && resSubida.url) {
           setImagenUrl(resSubida.url);
-          Alert.alert('📸 Foto Capturada', 'La foto fue sincronizada con Supabase Storage.');
+          showToast({
+            type: 'success',
+            title: 'Foto Capturada',
+            message: 'La foto fue sincronizada con Supabase Storage.',
+          });
         }
       }
     } catch (err: any) {
       console.warn('[AdminPanel] Error al abrir cámara:', err);
-      Alert.alert('Aviso', 'No se pudo abrir la cámara en este dispositivo.');
+      showToast({
+        type: 'error',
+        title: 'Aviso',
+        message: 'No se pudo abrir la cámara en este dispositivo.',
+      });
     } finally {
       setSubiendoImagen(false);
     }
@@ -158,12 +174,20 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   // =========================================================================
   const handlePublicarCurso = async () => {
     if (!titulo.trim()) {
-      Alert.alert('Falta Información', 'Ingresa el nombre o título del curso.');
+      showToast({
+        type: 'warning',
+        title: 'Falta Información',
+        message: 'Ingresa el nombre o título del curso.',
+      });
       return;
     }
     const precioNum = parseFloat(precio);
     if (isNaN(precioNum) || precioNum <= 0) {
-      Alert.alert('Precio Inválido', 'Ingresa un precio de venta mayor a 0.');
+      showToast({
+        type: 'warning',
+        title: 'Precio Inválido',
+        message: 'Ingresa un precio de venta mayor a 0.',
+      });
       return;
     }
 
@@ -195,14 +219,23 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     setCargando(false);
 
     if (resultado.exito) {
-      Alert.alert('🚀 ¡Curso Publicado!', `"${titulo}" ya está disponible en el catálogo de los alumnos.`);
+      showToast({
+        type: 'success',
+        title: 'Curso Publicado',
+        message: `"${titulo}" ya está disponible en el catálogo de los alumnos.`,
+        duration: 4500,
+      });
       setMostrarFormNuevo(false);
       setTitulo('');
       setDescripcion('');
       await recargarCursos();
       onCatalogoModificado?.();
     } else {
-      Alert.alert('Error en Supabase', resultado.mensaje);
+      showToast({
+        type: 'error',
+        title: 'Error en Supabase',
+        message: resultado.mensaje,
+      });
     }
   };
 
@@ -212,7 +245,11 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const handleGuardarPrecio = async (id: string) => {
     const nuevo = parseFloat(precioEditado);
     if (isNaN(nuevo) || nuevo < 0) {
-      Alert.alert('Precio Inválido', 'Ingresa un valor numérico válido.');
+      showToast({
+        type: 'warning',
+        title: 'Precio Inválido',
+        message: 'Ingresa un valor numérico válido.',
+      });
       return;
     }
 
@@ -223,14 +260,22 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     setCargando(false);
 
     if (res.exito) {
-      Alert.alert('✅ Precio Actualizado', `El nuevo precio del curso es S/ ${nuevo.toFixed(2)}.`);
+      showToast({
+        type: 'success',
+        title: 'Precio Actualizado',
+        message: `El nuevo precio del curso es S/ ${nuevo.toFixed(2)}.`,
+      });
       setCursoEditandoId(null);
       setPrecioEditado('');
       setPrecioRegularEditado('');
       await recargarCursos();
       onCatalogoModificado?.();
     } else {
-      Alert.alert('Error', res.mensaje);
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: res.mensaje,
+      });
     }
   };
 
@@ -238,29 +283,34 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   // 3. DELETE: Retirar curso del catálogo (Soft Delete para proteger boletas)
   // =========================================================================
   const handleRetirarCurso = (id: string, nombreCurso: string) => {
-    Alert.alert(
-      'Retirar Curso del Catálogo',
-      `¿Deseas retirar "${nombreCurso}" de la vista de los estudiantes?\n\n(Se aplicará borrado lógico "Soft Delete" para mantener intacto el historial de compras).`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Retirar del App',
-          style: 'destructive',
-          onPress: async () => {
-            setCargando(true);
-            const res = await CursosSupabaseService.eliminarCurso(id, false);
-            setCargando(false);
-            if (res.exito) {
-              Alert.alert('Retirado', `El curso ha sido ocultado del catálogo.`);
-              await recargarCursos();
-              onCatalogoModificado?.();
-            } else {
-              Alert.alert('Error', res.mensaje);
-            }
-          },
-        },
-      ]
-    );
+    showConfirm({
+      title: 'Retirar Curso del Catálogo',
+      message: `¿Deseas retirar "${nombreCurso}" de la vista de los estudiantes?\n(Se aplicará borrado lógico "Soft Delete" para mantener intacto el historial de compras).`,
+      confirmText: 'Retirar del App',
+      cancelText: 'Cancelar',
+      type: 'danger',
+      icon: 'trash-outline',
+      onConfirm: async () => {
+        setCargando(true);
+        const res = await CursosSupabaseService.eliminarCurso(id, false);
+        setCargando(false);
+        if (res.exito) {
+          showToast({
+            type: 'info',
+            title: 'Curso Retirado',
+            message: 'El curso ha sido ocultado del catálogo.',
+          });
+          await recargarCursos();
+          onCatalogoModificado?.();
+        } else {
+          showToast({
+            type: 'error',
+            title: 'Error',
+            message: res.mensaje,
+          });
+        }
+      },
+    });
   };
 
   return (
@@ -324,7 +374,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
             {/* FORMULARIO DE CREACIÓN (CREATE) */}
             {mostrarFormNuevo && (
               <View style={styles.formularioCard}>
-                <Text style={styles.formularioTitle}>🚀 Registrar Nuevo Curso en el Catálogo</Text>
+                <Text style={styles.formularioTitle}>Registrar Nuevo Curso en el Catálogo</Text>
                 <Text style={styles.formularioSub}>
                   Los estudiantes verán este curso reflejado de inmediato en su pantalla.
                 </Text>
@@ -460,36 +510,40 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 <Text style={[styles.label, { marginTop: 10, fontSize: 10 }]}>PRESETS RÁPIDOS PARA LA CLASE:</Text>
                 <View style={styles.presetsRow}>
                   <TouchableOpacity
-                    style={styles.presetChip}
+                    style={[styles.presetChip, { flexDirection: 'row', alignItems: 'center' }]}
                     onPress={() =>
                       setImagenUrl('https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600')
                     }
                   >
-                    <Text style={styles.presetChipText}>📱 Móvil</Text>
+                    <Ionicons name="phone-portrait-outline" size={13} color="#38BDF8" style={{ marginRight: 4 }} />
+                    <Text style={styles.presetChipText}>Móvil</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.presetChip}
+                    style={[styles.presetChip, { flexDirection: 'row', alignItems: 'center' }]}
                     onPress={() =>
                       setImagenUrl('https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600')
                     }
                   >
-                    <Text style={styles.presetChipText}>⚡ Backend</Text>
+                    <Ionicons name="server-outline" size={13} color="#38BDF8" style={{ marginRight: 4 }} />
+                    <Text style={styles.presetChipText}>Backend</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.presetChip}
+                    style={[styles.presetChip, { flexDirection: 'row', alignItems: 'center' }]}
                     onPress={() =>
                       setImagenUrl('https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600')
                     }
                   >
-                    <Text style={styles.presetChipText}>☁️ Cloud</Text>
+                    <Ionicons name="cloud-outline" size={13} color="#38BDF8" style={{ marginRight: 4 }} />
+                    <Text style={styles.presetChipText}>Cloud</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.presetChip}
+                    style={[styles.presetChip, { flexDirection: 'row', alignItems: 'center' }]}
                     onPress={() =>
                       setImagenUrl('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600')
                     }
                   >
-                    <Text style={styles.presetChipText}>🤖 IA</Text>
+                    <Ionicons name="hardware-chip-outline" size={13} color="#38BDF8" style={{ marginRight: 4 }} />
+                    <Text style={styles.presetChipText}>IA</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -553,7 +607,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         style={styles.btnCancelarPrecio}
                         onPress={() => setCursoEditandoId(null)}
                       >
-                        <Text style={styles.btnCancelarPrecioText}>✕</Text>
+                        <Ionicons name="close" size={16} color="#94A3B8" />
                       </TouchableOpacity>
                     </View>
                   </View>

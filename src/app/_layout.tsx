@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
-import { Alert } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { AuthProvider } from '../context/AuthContext';
 import { CartProvider } from '../context/CartContext';
+import { NotificationProvider, useNotification } from '../context/NotificationContext';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { SyncEngine } from '../services/SyncEngine';
@@ -16,24 +16,27 @@ import { SyncEngine } from '../services/SyncEngine';
  */
 function SyncSentinel() {
   const { isConnected } = useNetworkStatus();
+  const { showToast } = useNotification();
 
   useEffect(() => {
     if (isConnected) {
       SyncEngine.procesarCola().then(({ procesados }) => {
         if (procesados > 0) {
-          console.log(`[SyncSentinel] ⚡ ${procesados} transacciones offline sincronizadas.`);
-          Alert.alert(
-            '¡Sincronización Exitosa! 🌐🎉',
-            `Se ${
+          console.log(`[SyncSentinel] ${procesados} transacciones offline sincronizadas.`);
+          showToast({
+            type: 'success',
+            title: 'Sincronización Exitosa',
+            message: `Se ${
               procesados === 1
-                ? 'ha validado y sincronizado con éxito 1 matrícula'
-                : `han validado y sincronizado con éxito ${procesados} matrículas`
-            } que realizaste mientras estabas en modo offline.\n\nTus cursos ya están registrados en el sistema.`
-          );
+                ? 'ha validado y sincronizado 1 matrícula'
+                : `han validado y sincronizado ${procesados} matrículas`
+            } que realizaste en modo offline.`,
+            duration: 4500,
+          });
         }
       });
     }
-  }, [isConnected]);
+  }, [isConnected, showToast]);
 
   return null;
 }
@@ -42,17 +45,13 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      {/* 🌐 Nivel 1: Proveedor de Autenticación de Usuario con AsyncStorage */}
-      <AuthProvider>
-        {/* 🛒 Nivel 2: Proveedor de Carrito de Compras con AsyncStorage */}
-        <CartProvider>
-          {/* 📡 Centinela de sincronización automática de cola FIFO */}
-          <SyncSentinel />
+      <NotificationProvider>
+        <AuthProvider>
+          <CartProvider>
+            <SyncSentinel />
+            <OfflineBanner />
 
-          {/* ⚠️ Banner visual flotante en modo Offline */}
-          <OfflineBanner />
-
-          <Stack
+            <Stack
             screenOptions={{
               headerStyle: {
                 backgroundColor: Colors.surface,
@@ -124,6 +123,7 @@ export default function RootLayout() {
           </Stack>
         </CartProvider>
       </AuthProvider>
-    </SafeAreaProvider>
-  );
+    </NotificationProvider>
+  </SafeAreaProvider>
+);
 }

@@ -13,7 +13,7 @@ export const MatriculasSupabaseService = {
     items: Omit<MatriculaItemDB, 'id' | 'matricula_id'>[]
   ): Promise<{ exito: boolean; mensaje: string }> {
     if (!isSupabaseConfigured) {
-      console.log(`[MatriculasSupabase] ⚠️ Supabase no configurado aún con credenciales reales. Simulando éxito local.`);
+      console.log(`[MatriculasSupabase] Supabase no configurado aún con credenciales reales. Simulando éxito local.`);
       return { exito: true, mensaje: 'Modo local sin credenciales configuradas' };
     }
 
@@ -46,7 +46,7 @@ export const MatriculasSupabaseService = {
         }
       }
 
-      console.log(`[MatriculasSupabase] ☁️🎉 Matrícula ${matricula.id} guardada con éxito en PostgreSQL.`);
+      console.log(`[MatriculasSupabase] Matrícula ${matricula.id} guardada con éxito en PostgreSQL.`);
       return { exito: true, mensaje: 'Matrícula registrada exitosamente en Supabase' };
     } catch (err: any) {
       console.error('[MatriculasSupabase] Error inesperado:', err);

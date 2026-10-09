@@ -2,37 +2,40 @@
 // Controlador de lógica de negocio y autenticación para la pantalla de Perfil (Módulos 05 y 06)
 
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 import { BoletasService } from '../services/BoletasService';
 import { Boleta } from '../types/boleta';
 
 export function usePerfilController() {
   const router = useRouter();
   const { usuario, estaAutenticado, cargando, logout } = useAuth();
+  const { showConfirm, showToast } = useNotification();
 
   const [boletas, setBoletas] = useState<Boleta[]>([]);
   const [modalBoletasVisible, setModalBoletasVisible] = useState<boolean>(false);
   const [cargandoBoletas, setCargandoBoletas] = useState<boolean>(false);
 
   const handleCerrarSesion = useCallback(() => {
-    Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro de que deseas salir de tu cuenta?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Salir',
-          style: 'destructive',
-          onPress: () => {
-            logout();
-            router.replace('/(auth)/login');
-          },
-        },
-      ]
-    );
-  }, [logout, router]);
+    showConfirm({
+      title: 'Cerrar Sesión',
+      message: '¿Estás seguro de que deseas salir de tu cuenta de Code Andes?',
+      confirmText: 'Salir',
+      cancelText: 'Cancelar',
+      type: 'danger',
+      icon: 'log-out-outline',
+      onConfirm: () => {
+        logout();
+        showToast({
+          type: 'info',
+          title: 'Sesión Finalizada',
+          message: 'Has salido de tu cuenta correctamente.',
+        });
+        router.replace('/(auth)/login');
+      },
+    });
+  }, [logout, router, showConfirm, showToast]);
 
   const handleIrALogin = useCallback(() => {
     router.push('/(auth)/login');

@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (resultado.exito && resultado.usuario) {
           setUsuario(resultado.usuario);
           setToken(resultado.token || null);
-          console.log(`[AuthContext] ☁️ Sesión JWT iniciada como [${resultado.usuario.rol.toUpperCase()}]: ${resultado.usuario.nombre}`);
+          console.log(`[AuthContext] Sesión JWT iniciada como [${resultado.usuario.rol.toUpperCase()}]: ${resultado.usuario.nombre}`);
         }
       } catch (error) {
         console.error('[AuthContext] Error en login:', error);
@@ -88,7 +88,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (resultado.exito && resultado.usuario) {
           setUsuario(resultado.usuario);
           setToken(resultado.token || null);
-          console.log(`[AuthContext] ☁️ Registro JWT completado con éxito en Supabase: ${resultado.usuario.email}`);
+          console.log(`[AuthContext] Registro JWT completado con éxito en Supabase: ${resultado.usuario.email}`);
         }
       } catch (error) {
         console.error('[AuthContext] Error en registro:', error);
@@ -151,7 +151,7 @@ export function useAuth(): AuthContextType {
 
   if (!context) {
     throw new Error(
-      '❌ useAuth debe ser utilizado dentro de un <AuthProvider>. ' +
+      'useAuth debe ser utilizado dentro de un <AuthProvider>. ' +
       'Asegúrate de envolver tu app en app/_layout.tsx.'
     );
   }
