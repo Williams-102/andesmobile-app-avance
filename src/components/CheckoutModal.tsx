@@ -22,6 +22,7 @@ import { VouchersSupabaseService } from '../services/VouchersSupabaseService';
 import { BoletasService } from '../services/BoletasService';
 import { MatriculasSupabaseService } from '../services/MatriculasSupabaseService';
 import { SyncEngine } from '../services/SyncEngine';
+import { useAuth } from '../context/AuthContext';
 
 interface CheckoutModalProps {
   visible: boolean;
@@ -47,6 +48,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onPagoCompletado,
 }) => {
   const { showToast } = useNotification();
+  const { usuario } = useAuth();
 
   // Estados reactivos del modal
   const [metodo, setMetodo] = useState<MetodoPagoTipo>('yape');
@@ -207,7 +209,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setTarjetaNumero('4557 8821 9012 3456');
     setTarjetaExpiracion('12/28');
     setTarjetaCvv('842');
-    setTarjetaTitular('ESTUDIANTE ANDES');
+    setTarjetaTitular(usuario?.nombre ? usuario.nombre.toUpperCase() : 'ESTUDIANTE ANDES');
     showToast({
       type: 'info',
       title: 'Datos Demo Cargados',
@@ -333,11 +335,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             numeroOperacion: opFinal,
             voucherUrl: urlVoucherFinal,
             ultimosDigitosTarjeta: ultimosDigitos,
+            usuarioId: usuario?.id || null,
+            clienteNombre: usuario?.nombre || 'Estudiante Code Andes',
+            clienteEmail: usuario?.email || '',
             fecha: new Date().toISOString(),
           },
         });
 
-        // Registrar boleta local
+        // Registrar boleta local asociada al alumno
         const boletaOffline = await BoletasService.registrarBoleta({
           id: idMatricula,
           serie: serieMatricula,
@@ -349,6 +354,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           numeroOperacion: opFinal,
           voucherUrl: urlVoucherFinal,
           ultimosDigitosTarjeta: ultimosDigitos,
+          usuarioId: usuario?.id || null,
+          clienteNombre: usuario?.nombre || 'Estudiante Code Andes',
+          clienteEmail: usuario?.email || '',
           estado: 'SINCRONIZADO_OFFLINE',
           ticketOfflineId: ticketId,
         });
@@ -369,7 +377,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       // Flujo Online: Registrar en Supabase PostgreSQL
       const matriculaPayload = {
         id: idMatricula,
-        usuario_id: null,
+        usuario_id: usuario?.id || null,
         total,
         subtotal,
         igv,
@@ -388,7 +396,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
       await MatriculasSupabaseService.crearMatricula(matriculaPayload, itemsPayload);
 
-      // Registrar boleta en almacenamiento local
+      // Registrar boleta en almacenamiento local con los datos reales del alumno autenticado
       const boletaOnline = await BoletasService.registrarBoleta({
         id: idMatricula,
         serie: serieMatricula,
@@ -400,6 +408,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         numeroOperacion: opFinal,
         voucherUrl: urlVoucherFinal,
         ultimosDigitosTarjeta: ultimosDigitos,
+        usuarioId: usuario?.id || null,
+        clienteNombre: usuario?.nombre || 'Estudiante Code Andes',
+        clienteEmail: usuario?.email || '',
         estado: 'COMPLETADO_ONLINE',
       });
 

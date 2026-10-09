@@ -64,6 +64,9 @@ export const SyncEngine = {
             metodoPago: metodoPagoDinamico,
             numeroOperacion: ticket.payload.numeroOperacion,
             voucherUrl: ticket.payload.voucherUrl,
+            usuarioId: ticket.payload.usuarioId || null,
+            clienteNombre: ticket.payload.clienteNombre || 'Estudiante Code Andes',
+            clienteEmail: ticket.payload.clienteEmail || undefined,
             estado: 'SINCRONIZADO_OFFLINE',
             ticketOfflineId: ticket.id,
           });
@@ -76,7 +79,7 @@ export const SyncEngine = {
           await MatriculasSupabaseService.crearMatricula(
             {
               id: boleta.id,
-              usuario_id: null,
+              usuario_id: ticket.payload.usuarioId || null,
               total: totalNum,
               subtotal: subtotalNum,
               igv: igvNum,

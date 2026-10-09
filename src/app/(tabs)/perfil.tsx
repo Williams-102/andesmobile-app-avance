@@ -28,6 +28,7 @@ export default function PerfilScreen() {
     handleIrARegistro,
     handleAbrirBoletas,
     handleCerrarBoletas,
+    handleLimpiarHistorialBoletas,
   } = usePerfilController();
 
   if (cargando) {
@@ -206,9 +207,16 @@ export default function PerfilScreen() {
                 <Ionicons name="receipt-outline" size={22} color="#38BDF8" />
                 <Text style={perfilStyles.modalTitle}>Historial de Boletas</Text>
               </View>
-              <TouchableOpacity onPress={handleCerrarBoletas} style={perfilStyles.modalCloseBtn}>
-                <Ionicons name="close" size={22} color={Colors.textMuted} />
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                {boletas.length > 0 && (
+                  <TouchableOpacity onPress={handleLimpiarHistorialBoletas} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Text style={{ color: Colors.danger, fontSize: 12, fontWeight: '700' }}>Limpiar</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity onPress={handleCerrarBoletas} style={perfilStyles.modalCloseBtn}>
+                  <Ionicons name="close" size={22} color={Colors.textMuted} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <Text style={perfilStyles.modalSubtitle}>
@@ -277,9 +285,14 @@ export default function PerfilScreen() {
                       </View>
                     </View>
 
-                    <Text style={{ color: Colors.textMuted, fontSize: 11, marginBottom: 8 }}>
-                      Fecha: {new Date(boleta.fecha).toLocaleString('es-PE')}
-                    </Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <Text style={{ color: '#94A3B8', fontSize: 11 }} numberOfLines={1}>
+                        Alumno: <Text style={{ color: '#E2E8F0', fontWeight: '600' }}>{boleta.clienteNombre || 'Estudiante Code Andes'}</Text>
+                      </Text>
+                      <Text style={{ color: Colors.textMuted, fontSize: 10 }}>
+                        {new Date(boleta.fecha).toLocaleString('es-PE')}
+                      </Text>
+                    </View>
 
                     {/* Lista de Cursos */}
                     <View style={{ borderTopWidth: 1, borderTopColor: '#1E293B', paddingTop: 6, marginBottom: 6 }}>

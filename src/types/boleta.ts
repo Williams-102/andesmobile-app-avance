@@ -20,6 +20,7 @@ export interface Boleta {
   voucherUrl?: string;                 // URL del comprobante en Supabase Storage
   bancoOrigen?: string;                // 'Yape' | 'Plin' | 'BCP' | 'Interbank' | 'Visa' | 'Mastercard'
   ultimosDigitosTarjeta?: string;      // Ej: '4242'
+  usuarioId?: string | null;           // ID del usuario autenticado
   clienteNombre?: string;              // Nombre del alumno
   clienteEmail?: string;               // Correo del alumno
   rucEmisor: string;                   // '20612345678'

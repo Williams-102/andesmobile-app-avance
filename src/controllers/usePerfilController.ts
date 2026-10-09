@@ -50,18 +50,38 @@ export function usePerfilController() {
     setCargandoBoletas(true);
     setModalBoletasVisible(true);
     try {
-      const data = await BoletasService.obtenerBoletas();
+      const data = await BoletasService.obtenerBoletas(usuario?.id, usuario?.email);
       setBoletas(data);
     } catch (e) {
       console.error('[usePerfilController] Error cargando boletas:', e);
     } finally {
       setCargandoBoletas(false);
     }
-  }, []);
+  }, [usuario?.id, usuario?.email]);
 
   const handleCerrarBoletas = useCallback(() => {
     setModalBoletasVisible(false);
   }, []);
+
+  const handleLimpiarHistorialBoletas = useCallback(() => {
+    showConfirm({
+      title: 'Limpiar Historial',
+      message: '¿Deseas vaciar el historial de boletas guardadas localmente en este dispositivo?',
+      confirmText: 'Limpiar',
+      cancelText: 'Cancelar',
+      type: 'danger',
+      icon: 'trash-outline',
+      onConfirm: async () => {
+        await BoletasService.limpiarHistorial();
+        setBoletas([]);
+        showToast({
+          type: 'info',
+          title: 'Historial Vacio',
+          message: 'Se ha limpiado el registro local de boletas.',
+        });
+      },
+    });
+  }, [showConfirm, showToast]);
 
   return {
     usuario,
@@ -77,5 +97,6 @@ export function usePerfilController() {
     handleIrARegistro,
     handleAbrirBoletas,
     handleCerrarBoletas,
+    handleLimpiarHistorialBoletas,
   };
 }
