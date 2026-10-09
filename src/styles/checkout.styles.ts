@@ -129,9 +129,9 @@ export const checkoutStyles = StyleSheet.create({
   },
   qrWrapperYape: {
     backgroundColor: '#FFFFFF',
-    padding: 8,
-    borderRadius: 16,
-    borderWidth: 1.5,
+    padding: 12,
+    borderRadius: 18,
+    borderWidth: 2,
     borderColor: '#742284',
     alignItems: 'center',
     justifyContent: 'center',
@@ -142,8 +142,8 @@ export const checkoutStyles = StyleSheet.create({
     borderRadius: 8,
   },
   qrImageYape: {
-    width: 220,
-    height: 310,
+    width: 210,
+    height: 210,
     borderRadius: 10,
   },
   qrTag: {

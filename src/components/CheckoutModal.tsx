@@ -30,7 +30,7 @@ import {
 } from '../services/PaymentValidationService';
 
 // QR Oficial BCP de Yape importado desde assets
-const QR_YAPE_OFICIAL_ASSET = require('../../assets/qr_app.jpeg');
+const QR_YAPE_OFICIAL_ASSET = require('../../assets/qr-app-yape.jpeg');
 
 interface CheckoutModalProps {
   visible: boolean;
@@ -232,7 +232,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(dataQr)}`;
   }, [metodo, total, configCuentas]);
 
-  // Fuente de imagen para QR Yape (prioriza URL personalizada o el QR oficial BCP de assets/qr_app.jpeg)
+  // Fuente de imagen para QR Yape (prioriza URL personalizada o el QR oficial BCP de assets/qr-app-yape.jpeg)
   const fuenteQrYape = useMemo(() => {
     if (configCuentas.yapeQrImagen) {
       return { uri: configCuentas.yapeQrImagen };
@@ -714,7 +714,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, marginBottom: 6 }}>
                         <Ionicons name="checkmark-circle-outline" size={16} color="#10B981" />
                         <Text style={{ fontSize: 11, color: '#10B981', fontWeight: '600' }}>
-                          QR Oficial BCP activo por defecto (assets/qr_app.jpeg)
+                          QR Oficial BCP activo por defecto (assets/qr-app-yape.jpeg)
                         </Text>
                       </View>
                       <TouchableOpacity
