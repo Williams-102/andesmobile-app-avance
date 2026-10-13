@@ -22,16 +22,16 @@ export interface ConfiguracionCuentasPago {
 }
 
 export const CONFIGURACION_PAGO_POR_DEFECTO: ConfiguracionCuentasPago = {
-  yapeNumero: '987 654 321',
-  yapeTitular: 'test',
-  yapeBanco: 'Banco de Credito del Peru (BCP)',
-  plinNumero: '987 654 321',
-  plinTitular: 'test',
-  plinBanco: 'BBVA / Interbank',
-  tarjetaCuentaDestino: '193-9821049-0-44',
-  tarjetaTitularDestino: 'Code Andes Academy S.A.C.',
-  tarjetaBancoDestino: 'BCP Cta. Cte. Soles',
-  cciDestino: '002-193009821049044-12',
+  yapeNumero: process.env.EXPO_PUBLIC_YAPE_NUMERO || '987 654 321',
+  yapeTitular: process.env.EXPO_PUBLIC_YAPE_TITULAR || 'Code Andes Academy S.A.C.',
+  yapeBanco: process.env.EXPO_PUBLIC_YAPE_BANCO || 'Banco de Credito del Peru (BCP)',
+  plinNumero: process.env.EXPO_PUBLIC_PLIN_NUMERO || '987 654 321',
+  plinTitular: process.env.EXPO_PUBLIC_PLIN_TITULAR || 'Code Andes Academy S.A.C.',
+  plinBanco: process.env.EXPO_PUBLIC_PLIN_BANCO || 'BBVA / Interbank',
+  tarjetaCuentaDestino: process.env.EXPO_PUBLIC_TARJETA_CUENTA || '193-9821049-0-44',
+  tarjetaTitularDestino: process.env.EXPO_PUBLIC_TARJETA_TITULAR || 'Code Andes Academy S.A.C.',
+  tarjetaBancoDestino: process.env.EXPO_PUBLIC_TARJETA_BANCO || 'BCP Cta. Cte. Soles',
+  cciDestino: process.env.EXPO_PUBLIC_CCI_DESTINO || '002-193009821049044-12',
 };
 
 export interface ValidacionResultado {
@@ -272,7 +272,7 @@ export const PaymentValidationService = {
   },
 
   /**
-   * Valida el número de operación bancaria emitido por Yape o Plin.
+   Valida el número de operación bancaria emitido por Yape o Plin.
    */
   validarNumeroOperacion(operacion: string): ValidacionResultado {
     const limpio = operacion.trim();

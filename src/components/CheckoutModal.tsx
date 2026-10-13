@@ -394,12 +394,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const demoOp = String(Math.floor(100000 + Math.random() * 900000));
     setVoucherUri('https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=600');
     setVoucherBase64(null);
-    setCelularEmisor('984 512 603');
+    setCelularEmisor('987 654 321');
     setNumeroOperacion(demoOp);
     showToast({
       type: 'info',
       title: 'Datos Demo de Pago Cargados',
-      message: `Celular (984 512 603) y N° de operacion (${demoOp}) asignados para pruebas.`,
+      message: `Celular (987 654 321) y N° de operacion (${demoOp}) asignados para pruebas.`,
     });
   };
 
@@ -722,7 +722,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     style={checkoutStyles.configInput}
                     value={editYapeNumero}
                     onChangeText={setEditYapeNumero}
-                    placeholder="960 952 665"
+                    placeholder="987 654 321"
                     placeholderTextColor={Colors.textMuted}
                     keyboardType="phone-pad"
                   />
@@ -782,7 +782,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     style={checkoutStyles.configInput}
                     value={editPlinNumero}
                     onChangeText={setEditPlinNumero}
-                    placeholder="960 444 777"
+                    placeholder="987 654 321"
                     placeholderTextColor={Colors.textMuted}
                     keyboardType="phone-pad"
                   />
@@ -1166,7 +1166,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   </View>
                   <TextInput
                     style={checkoutStyles.input}
-                    placeholder="Ej: 984 512 603"
+                    placeholder="Ej: 987 654 321"
                     placeholderTextColor={Colors.textMuted}
                     value={celularEmisor}
                     onChangeText={(val) => setCelularEmisor(val.replace(/[^0-9]/g, '').slice(0, 9))}

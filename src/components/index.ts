@@ -9,3 +9,4 @@ export * from './CheckoutModal';
 export * from './BoletaModal';
 export * from './CertificadosModal';
 export * from './AjustesCuentaModal';
+export * from './PanelAuditoriaSeguridadRendimiento';

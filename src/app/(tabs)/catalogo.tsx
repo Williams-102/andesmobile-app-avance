@@ -1,7 +1,7 @@
 // src/app/(tabs)/catalogo.tsx
 // Catálogo de Cursos conectado a Supabase Cloud, useCatalogoController y getCatalogoStyles (Clean Architecture)
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   StatusBar,
   ActivityIndicator,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,8 +21,12 @@ import { useCatalogoController } from '@/controllers/useCatalogoController';
 import { getCatalogoStyles } from '@/styles/catalogo.styles';
 import { useAuth } from '@/context/AuthContext';
 import { AdminPanelModal } from '@/components/AdminPanelModal';
+import { usePerformanceProfiler } from '@/hooks/usePerformanceProfiler';
 
 export default function CatalogScreen() {
+  // Telemetria de profiling en tiempo real para Modulo 10
+  usePerformanceProfiler('CatalogoCursos');
+
   const [modalAdminVisible, setModalAdminVisible] = React.useState(false);
   const { usuario } = useAuth();
   const {
@@ -39,6 +44,14 @@ export default function CatalogScreen() {
   } = useCatalogoController();
 
   const styles = getCatalogoStyles(isDarkMode);
+
+  // Optimizacion: Memorizar el renderizador de items para no generar funciones anonimas en cada frame
+  const renderItemCurso = useCallback(
+    ({ item }: { item: any }) => (
+      <TarjetaProducto curso={item} isDarkMode={isDarkMode} />
+    ),
+    [isDarkMode]
+  );
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -123,15 +136,17 @@ export default function CatalogScreen() {
           </Text>
         </View>
       ) : (
-        /* Listado dinámico de cursos con FlatList optimizada y Pull-to-Refresh */
+        /* Listado dinamico de cursos con FlatList optimizada (Modulo 10: initialNumToRender, windowSize, batching) */
         <FlatList
           data={filteredCursos}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TarjetaProducto curso={item} isDarkMode={isDarkMode} />
-          )}
+          renderItem={renderItemCurso}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={5}
+          maxToRenderPerBatch={6}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS !== 'web'}
           refreshControl={
             <RefreshControl
               refreshing={refrescando}

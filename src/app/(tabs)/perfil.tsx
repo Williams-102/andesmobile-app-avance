@@ -11,9 +11,11 @@ import { perfilStyles } from '@/styles/perfil.styles';
 import { AdminPanelModal } from '@/components/AdminPanelModal';
 import { BoletaModal } from '@/components/BoletaModal';
 import { CertificadosModal, AjustesCuentaModal } from '@/components';
+import { PanelAuditoriaSeguridadRendimiento } from '@/components/PanelAuditoriaSeguridadRendimiento';
 
 export default function PerfilScreen() {
   const [modalAdminVisible, setModalAdminVisible] = React.useState(false);
+  const [modalAuditoriaVisible, setModalAuditoriaVisible] = React.useState(false);
   const { showToast } = useNotification();
   const {
     usuario,
@@ -164,6 +166,31 @@ export default function PerfilScreen() {
           <Text style={perfilStyles.opcionTexto}>Ajustes de Cuenta</Text>
           <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
         </TouchableOpacity>
+
+        {/* Herramienta Interna de Diagnóstico DevTools (Modulo 10):
+            Invisible para usuarios finales en producción comercial.
+            Habilitado exclusivamente en modo desarrollo (__DEV__) o para administradores. */}
+        {(__DEV__ || (estaAutenticado && usuario?.rol === 'admin')) && (
+          <TouchableOpacity
+            style={[
+              perfilStyles.opcionFila,
+              {
+                backgroundColor: 'rgba(0, 180, 216, 0.08)',
+                borderColor: 'rgba(0, 180, 216, 0.35)',
+                borderWidth: 1,
+                borderRadius: 10,
+                marginTop: 6,
+              },
+            ]}
+            onPress={() => setModalAuditoriaVisible(true)}
+          >
+            <Ionicons name="hardware-chip-outline" size={20} color="#00B4D8" />
+            <Text style={[perfilStyles.opcionTexto, { color: '#00B4D8', fontWeight: '700' }]}>
+              Diagnóstico DevTools {__DEV__ ? '(Modo Dev)' : '(Admin)'}
+            </Text>
+            <Ionicons name="chevron-forward" size={18} color="#00B4D8" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Botón condicional según estado de autenticación */}
@@ -363,6 +390,12 @@ export default function PerfilScreen() {
         onClose={handleCerrarAjustes}
         usuario={usuario}
         onPerfilActualizado={handlePerfilActualizado}
+      />
+
+      {/* Modal de Auditoria de Ciberseguridad y Profiling (Modulo 10) */}
+      <PanelAuditoriaSeguridadRendimiento
+        visible={modalAuditoriaVisible}
+        onClose={() => setModalAuditoriaVisible(false)}
       />
     </View>
   );
