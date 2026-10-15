@@ -28,19 +28,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           if (guardados !== null && Array.isArray(guardados)) {
             setItems(guardados);
           } else {
-            // Producto demo inicial para que el alumno explore de inmediato unicamente en la primera ejecucion
-            const demoItem: ItemCarrito = {
-              id: '1',
-              titulo: 'Desarrollo de Apps Móviles con React Native & Expo',
-              precio: 149.90,
-              instructor: 'Exar Williams Atao',
-              categoria: 'Móvil',
-              duracion: '120 hrs',
-              imagenUrl: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800',
-              fechaAgregado: new Date().toISOString(),
-            };
-            setItems([demoItem]);
-            await StorageService.set(STORAGE_KEYS.CART_ITEMS, [demoItem]);
+            setItems([]);
+            await StorageService.set(STORAGE_KEYS.CART_ITEMS, []);
           }
           estaInicializado.current = true;
         }

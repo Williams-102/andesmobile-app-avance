@@ -35,7 +35,14 @@
     "adb:devices": "adb devices",
     "adb:reverse": "adb reverse tcp:8081 tcp:8081",
     "adb:logcat": "adb logcat *:S ReactNative:V ReactNativeJS:V",
-    "adb:menu": "adb shell input keyevent 82"
+    "adb:menu": "adb shell input keyevent 82",
+    "eas:login": "npx eas-cli login",
+    "eas:whoami": "npx eas-cli whoami",
+    "build:apk": "npx eas-cli build -p android --profile preview",
+    "build:aab": "npx eas-cli build -p android --profile production",
+    "build:ios": "npx eas-cli build -p ios --profile preview",
+    "submit:android": "npx eas-cli submit -p android",
+    "submit:ios": "npx eas-cli submit -p ios"
   },
   "private": true
 }

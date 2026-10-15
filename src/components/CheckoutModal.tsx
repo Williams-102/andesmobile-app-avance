@@ -389,33 +389,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   };
 
-  // Boton para rellenar comprobante y operacion demo (Yape / Plin) para evaluacion en clase
-  const handleRellenarVoucherDemo = () => {
-    const demoOp = String(Math.floor(100000 + Math.random() * 900000));
-    setVoucherUri('https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=600');
-    setVoucherBase64(null);
-    setCelularEmisor('987 654 321');
-    setNumeroOperacion(demoOp);
-    showToast({
-      type: 'info',
-      title: 'Datos Demo de Pago Cargados',
-      message: `Celular (987 654 321) y N° de operacion (${demoOp}) asignados para pruebas.`,
-    });
-  };
-
-  // Boton para rellenar tarjeta demo de prueba que cumple estrictamente el algoritmo de Luhn
-  const handleRellenarTarjetaDemo = () => {
-    setTarjetaNumero('4242 4242 4242 4242'); // Tarjeta Visa real valida (Luhn checksum correcto)
-    setTarjetaExpiracion('12/28');
-    setTarjetaCvv('842');
-    setTarjetaTitular(usuario?.nombre ? usuario.nombre.toUpperCase() : 'ESTUDIANTE ANDES');
-    showToast({
-      type: 'info',
-      title: 'Tarjeta Demo Cargada',
-      message: 'Tarjeta Visa de pruebas con Checksum Luhn valido cargada para evaluacion rapida.',
-    });
-  };
-
   // Formateo reactivo del numero de tarjeta (grupos de 4)
   const handleCambioTarjetaNumero = (texto: string) => {
     const soloNumeros = texto.replace(/\D/g, '').slice(0, 16);
@@ -461,7 +434,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         showToast({
           type: 'warning',
           title: 'Comprobante Requerido',
-          message: 'Adjunta una captura de tu pago o presiona "Rellenar Comprobante Demo" para evaluar.',
+          message: 'Adjunta una captura autentica de tu comprobante de pago.',
         });
         return;
       }
@@ -1068,32 +1041,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   </View>
                 </View>
 
-                {/* Boton Didactico para Cargar Comprobante Demo */}
-                <TouchableOpacity
-                  style={[
-                    checkoutStyles.botonDemoTarjeta,
-                    {
-                      borderColor: metodo === 'yape' ? 'rgba(116, 34, 132, 0.4)' : 'rgba(2, 132, 199, 0.4)',
-                      backgroundColor: metodo === 'yape' ? 'rgba(116, 34, 132, 0.15)' : 'rgba(2, 132, 199, 0.15)',
-                    },
-                  ]}
-                  onPress={handleRellenarVoucherDemo}
-                >
-                  <Ionicons
-                    name="sparkles-outline"
-                    size={16}
-                    color={metodo === 'yape' ? '#D8B4FE' : '#38BDF8'}
-                  />
-                  <Text
-                    style={[
-                      checkoutStyles.botonDemoTarjetaTexto,
-                      { color: metodo === 'yape' ? '#E9D5FF' : '#7DD3FC' },
-                    ]}
-                  >
-                    Rellenar Comprobante Demo (Prueba Rapida)
-                  </Text>
-                </TouchableOpacity>
-
                 {/* Seccion de Carga de Comprobante (Voucher) */}
                 <Text style={checkoutStyles.seccionTitulo}>
                   Adjuntar Comprobante de Pago
@@ -1131,7 +1078,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                           textAlign: 'center',
                         }}
                       >
-                        Sube la captura de tu {metodo.toUpperCase()} o presiona "Rellenar Comprobante Demo"
+                        Sube la captura oficial del comprobante emitido por {metodo.toUpperCase()}
                       </Text>
                       <View style={checkoutStyles.voucherBotonesRow}>
                         <TouchableOpacity
@@ -1235,17 +1182,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </Text>
                   </View>
                 </View>
-
-                {/* Boton de Autocompletado Rapido para Evaluacion en Clase */}
-                <TouchableOpacity
-                  style={checkoutStyles.botonDemoTarjeta}
-                  onPress={handleRellenarTarjetaDemo}
-                >
-                  <Ionicons name="sparkles-outline" size={16} color="#60A5FA" />
-                  <Text style={checkoutStyles.botonDemoTarjetaTexto}>
-                    Rellenar Tarjeta Demo (Luhn Valido)
-                  </Text>
-                </TouchableOpacity>
 
                 {/* Inputs del Formulario de Tarjeta */}
                 <View style={checkoutStyles.inputGrupo}>

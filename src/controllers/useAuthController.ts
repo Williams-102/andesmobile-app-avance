@@ -57,8 +57,8 @@ export function useAuthController() {
     try {
       await login(loginEmail.trim(), loginPassword.trim());
       router.replace('/(tabs)/catalogo');
-    } catch {
-      setErrorMsg('Error al conectar con el servidor.');
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Error al iniciar sesion. Verifica tus credenciales.');
     }
   }, [loginEmail, loginPassword, login, router]);
 

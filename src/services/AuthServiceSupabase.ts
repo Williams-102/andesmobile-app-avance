@@ -89,11 +89,40 @@ export const AuthServiceSupabase = {
    */
   async login(email: string, password?: string): Promise<AuthResultado> {
     const cleanEmail = email.trim().toLowerCase();
-    const clave = password || '123456';
+    const clave = password ? password.trim() : '';
+
+    // 1. Validacion estricta de contrasenas para cuentas institucionales
+    if (cleanEmail === 'admin@codeandes.edu.pe') {
+      if (clave !== 'admin2026') {
+        return {
+          exito: false,
+          error: 'Contrasena incorrecta para la cuenta de Administrador.',
+        };
+      }
+    } else if (cleanEmail === 'docente@codeandes.edu.pe') {
+      if (clave !== 'docente2026') {
+        return {
+          exito: false,
+          error: 'Contrasena incorrecta para la cuenta de Docente.',
+        };
+      }
+    } else if (cleanEmail === 'alumno@codeandes.edu.pe') {
+      if (clave !== '123456') {
+        return {
+          exito: false,
+          error: 'Contrasena incorrecta para la cuenta de Alumno.',
+        };
+      }
+    } else if (clave.length < 4) {
+      return {
+        exito: false,
+        error: 'La contrasena debe tener al menos 4 caracteres.',
+      };
+    }
 
     if (isSupabaseConfigured) {
       try {
-        // 1. Intentar autenticar con Supabase Auth (genera JWT en session)
+        // 2. Intentar autenticar con Supabase Auth (genera JWT en session)
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
           email: cleanEmail,
           password: clave,

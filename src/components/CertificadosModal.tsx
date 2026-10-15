@@ -70,21 +70,6 @@ export const CertificadosModal: React.FC<CertificadosModalProps> = ({
       });
     });
 
-    // Si el usuario no tiene compras aun, mostrar certificado de bienvenida al programa
-    if (listado.length === 0) {
-      listado.push({
-        id: 'CERT-DEMO-EXPO',
-        codigoLegal: 'CIP-PE-2026-0001',
-        cursoTitulo: 'Desarrollo de Apps Moviles con React Native & Expo',
-        horas: 120,
-        creditos: 5,
-        docente: 'Ing. Exar Williams Atao Paucar',
-        cipRegistro: 'CIP Reg. 304921',
-        fechaEmision: new Date().toISOString(),
-        calificacion: 'Aprobado con Excelencia (20/20)',
-      });
-    }
-
     return listado;
   }, [boletas]);
 
@@ -136,52 +121,64 @@ export const CertificadosModal: React.FC<CertificadosModalProps> = ({
           </View>
 
           {/* Lista de Certificados */}
-          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 380, marginTop: 12 }}>
-            {certificados.map((cert) => (
-              <View key={cert.id} style={styles.certCard}>
-                <View style={styles.certCardHeader}>
-                  <Text style={styles.certCodigo}>{cert.codigoLegal}</Text>
-                  <View style={styles.badgeEstado}>
-                    <Ionicons name="checkmark-done" size={12} color="#10B981" />
-                    <Text style={styles.badgeEstadoText}>Verificado CIP</Text>
+          {certificados.length === 0 ? (
+            <View style={{ alignItems: 'center', paddingVertical: 36, paddingHorizontal: 20 }}>
+              <Ionicons name="ribbon-outline" size={48} color={Colors.textMuted} />
+              <Text style={{ color: Colors.text, fontWeight: '700', fontSize: 16, marginTop: 12, textAlign: 'center' }}>
+                Aun no tienes certificaciones emitidas
+              </Text>
+              <Text style={{ color: Colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 18 }}>
+                Matriculate y culmina tus especializaciones para obtener diplomas acreditados con registro oficial CIP.
+              </Text>
+            </View>
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 380, marginTop: 12 }}>
+              {certificados.map((cert) => (
+                <View key={cert.id} style={styles.certCard}>
+                  <View style={styles.certCardHeader}>
+                    <Text style={styles.certCodigo}>{cert.codigoLegal}</Text>
+                    <View style={styles.badgeEstado}>
+                      <Ionicons name="checkmark-done" size={12} color="#10B981" />
+                      <Text style={styles.badgeEstadoText}>Verificado CIP</Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.certTitulo}>{cert.cursoTitulo}</Text>
+
+                  <View style={styles.metaRow}>
+                    <Text style={styles.metaText}>
+                      Horas: <Text style={styles.metaHighlight}>{cert.horas} hrs</Text>
+                    </Text>
+                    <Text style={styles.metaText}>
+                      Creditos: <Text style={styles.metaHighlight}>{cert.creditos}</Text>
+                    </Text>
+                    <Text style={styles.metaText}>
+                      Firma: <Text style={styles.metaHighlight}>{cert.cipRegistro}</Text>
+                    </Text>
+                  </View>
+
+                  <View style={styles.certCardFooter}>
+                    <TouchableOpacity
+                      style={styles.btnVerDiploma}
+                      onPress={() => setCertificadoSeleccionado(cert)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="eye-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                      <Text style={styles.btnVerDiplomaText}>Ver Diploma Digital</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.btnCompartirMini}
+                      onPress={() => handleCompartirDiploma(cert)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="share-social-outline" size={18} color="#38BDF8" />
+                    </TouchableOpacity>
                   </View>
                 </View>
-
-                <Text style={styles.certTitulo}>{cert.cursoTitulo}</Text>
-
-                <View style={styles.metaRow}>
-                  <Text style={styles.metaText}>
-                    Horas: <Text style={styles.metaHighlight}>{cert.horas} hrs</Text>
-                  </Text>
-                  <Text style={styles.metaText}>
-                    Creditos: <Text style={styles.metaHighlight}>{cert.creditos}</Text>
-                  </Text>
-                  <Text style={styles.metaText}>
-                    Firma: <Text style={styles.metaHighlight}>{cert.cipRegistro}</Text>
-                  </Text>
-                </View>
-
-                <View style={styles.certCardFooter}>
-                  <TouchableOpacity
-                    style={styles.btnVerDiploma}
-                    onPress={() => setCertificadoSeleccionado(cert)}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="eye-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                    <Text style={styles.btnVerDiplomaText}>Ver Diploma Digital</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.btnCompartirMini}
-                    onPress={() => handleCompartirDiploma(cert)}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="share-social-outline" size={18} color="#38BDF8" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
+              ))}
+            </ScrollView>
+          )}
 
           {/* Boton Cerrar Principal */}
           <TouchableOpacity style={styles.btnCerrarModal} onPress={onClose} activeOpacity={0.85}>

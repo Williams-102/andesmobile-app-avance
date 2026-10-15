@@ -6,7 +6,6 @@ import { CursoDB } from '../types/database';
 import { Curso } from '../types/curso';
 import { StorageService } from './StorageService';
 import { STORAGE_KEYS } from '../constants/StorageKeys';
-import { CURSOS_MOCK } from '../constants/cursosData';
 
 /**
  * Convierte un registro de PostgreSQL (snake_case) al modelo de interfaz móvil (camelCase)
@@ -81,9 +80,8 @@ export const CursosSupabaseService = {
       return cacheLocal;
     }
 
-    // Fallback 2: Semilla inicial si la app abre por primera vez
-    await StorageService.set(STORAGE_KEYS.CACHE_CURSOS, CURSOS_MOCK);
-    return CURSOS_MOCK;
+    // Fallback: Si no hay conexión ni caché previa
+    return [];
   },
 
   // --------------------------------------------------------------------------

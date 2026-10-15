@@ -61,6 +61,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUsuario(resultado.usuario);
           setToken(resultado.token || null);
           console.log(`[AuthContext] Sesión JWT iniciada como [${resultado.usuario.rol.toUpperCase()}]: ${resultado.usuario.nombre}`);
+        } else {
+          throw new Error(resultado.error || 'Credenciales incorrectas.');
         }
       } catch (error) {
         console.error('[AuthContext] Error en login:', error);

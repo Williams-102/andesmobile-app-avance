@@ -116,14 +116,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <Ionicons name="log-in-outline" size={20} color="#FFFFFF" style={{ marginRight: 6 }} />
             <Text style={perfilStyles.modalSubmitText}>Ingresar al Campus</Text>
           </TouchableOpacity>
-
-          {/* Tarjeta de ayuda para clase */}
-          <View style={[perfilStyles.demoHintCard, { flexDirection: 'row', alignItems: 'center' }]}>
-            <Ionicons name="information-circle-outline" size={16} color="#38BDF8" style={{ marginRight: 6 }} />
-            <Text style={[perfilStyles.demoHintText, { flex: 1 }]}>
-              Modo Clase: Credenciales demo precargadas para probar la reactividad en vivo.
-            </Text>
-          </View>
         </View>
       </KeyboardAvoidingView>
     </Modal>

@@ -26,8 +26,6 @@ export default function LoginScreen() {
     setLoginEmail,
     loginPassword,
     setLoginPassword,
-    handleRellenarAlumno,
-    handleRellenarAdmin,
     handleLoginSubmit,
     handleIrARegistro,
     handleIrARecuperar,
@@ -110,39 +108,6 @@ export default function LoginScreen() {
                 ¿Olvidaste tu contraseña?
               </Text>
             </TouchableOpacity>
-
-            {/* Accesos Rápidos para la Clase (Módulo 07 & 08) */}
-            <View style={[authStyles.demoCard, { flexDirection: 'column', alignItems: 'stretch', gap: 8 }]}>
-              <Text style={[authStyles.demoCardText, { textAlign: 'center', marginBottom: 2 }]}>
-                Probar en Clase (Módulo 07):
-              </Text>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-                <TouchableOpacity
-                  style={[authStyles.demoFillBtn, { flex: 1, paddingHorizontal: 6 }]}
-                  onPress={handleRellenarAlumno}
-                >
-                  <Text style={[authStyles.demoFillBtnText, { textAlign: 'center', fontSize: 12 }]}>Estudiante</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    authStyles.demoFillBtn,
-                    {
-                      flex: 1,
-                      paddingHorizontal: 6,
-                      backgroundColor: 'rgba(245, 158, 11, 0.15)',
-                      borderColor: '#F59E0B',
-                    },
-                  ]}
-                  onPress={handleRellenarAdmin}
-                >
-                  <Text style={[authStyles.demoFillBtnText, { textAlign: 'center', fontSize: 12, color: '#F59E0B' }]}>
-                    Admin (CRUD)
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-
 
             {/* Botón de Enviar */}
             <TouchableOpacity

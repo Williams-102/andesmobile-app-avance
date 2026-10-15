@@ -1,14 +1,20 @@
 {
   "expo": {
-    "name": "andesmobile-app-avance",
-    "slug": "andesmobile-app-avance",
+    "name": "Andes Mobile App",
+    "slug": "andesmobile-app",
     "scheme": "andesmobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.codeandes.andesmobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Requiere acceso a la camara para adjuntar fotos de comprobantes de pago y perfil.",
+        "NSPhotoLibraryUsageDescription": "Requiere acceso a la galeria para seleccionar comprobantes de pago.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.codeandes.andesmobile",
@@ -33,6 +39,12 @@
       "expo-router",
       "expo-status-bar",
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "246ffde8-6765-47ec-89e6-49baedbb4e6d"
+      }
+    }
   }
 }

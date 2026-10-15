@@ -7,7 +7,6 @@ import { useCart } from '../context/CartContext';
 import { useNotification } from '../context/NotificationContext';
 import { CursosSupabaseService } from '../services/CursosSupabaseService';
 import { Curso } from '../types/curso';
-import { CURSOS_MOCK } from '@/constants/cursosData';
 
 export function useCursoDetalleController() {
   const router = useRouter();
@@ -23,9 +22,7 @@ export function useCursoDetalleController() {
 
   // Coerción segura de parámetros de ruta
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
-  const [cursoEncontrado, setCursoEncontrado] = useState<Curso | undefined>(
-    () => CURSOS_MOCK.find((c) => c.id === id)
-  );
+  const [cursoEncontrado, setCursoEncontrado] = useState<Curso | undefined>(undefined);
 
   useEffect(() => {
     let isMounted = true;
